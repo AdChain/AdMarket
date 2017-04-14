@@ -120,9 +120,10 @@ app.post('/', async function(req, res) {
   const timeout = channelState.impressions == 1 ? 100 : 0
 
   setTimeout(function() {
+    request.post({ url: 'http://localhost:3001/channel_update', body: { impression, update: channelState }, json: true}, function() {})
+    /*
     if (channelState.impressions == 1) {
-      request.post({ url: 'http://localhost:3001/channel_update', body: { impression, update: channelState }, json: true}, function() {})
-    }
+    }*/
   }, timeout)
 
   // const saved = await p(channelDB.find.bind(channelDB))({ channelId: CHANNEL_ID})

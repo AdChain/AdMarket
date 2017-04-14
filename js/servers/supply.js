@@ -195,6 +195,8 @@ function requestSignature(impressionIds) {
 
 
 // long running process which queries the AdMarket for pendingImpressions
+// looping over all pending impressions seems simpler than putting setTimeouts
+// for each impressions
 function loopPendingImpressions(timeout) {
   setTimeout(function() {
     if (IS_OPEN) {
