@@ -102,24 +102,22 @@ app.post('/channel_update', async function(req, res) {
 
 app.get('/request_signature', async function(req, res) {
   // Just need the impression Id?
-  const impressionIds = req.body
+  const impressions = req.body
 
-  console.log(impressionIds)
+  console.log(impressions)
 
   const savedImpressions = await p(impressionDB.find.bind(impressionDB))({
-    impressionId: { $in: impressionIds }
+    impressionId: { $in: impressions.map(({ impressionId }) => impressionId) }
   })
 
   // needs to return signed impressions, each signed individually
   // [ { impressionId, signature } ... ]
   console.log(savedImpressions)
   const signedImpressions = savedImpressions.map(impression => {
-    return {
-      impressionId: impression.impressionId,
-      signature: sign(sha3(impression.impressionId), privKey)
-    }
+    impression.signature = sign(sha3(impression.impressionId), privKey)
+    delete impression._id
+    return impression
   })
-
 
   res.json(signedImpressions)
 })
