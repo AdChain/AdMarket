@@ -12,7 +12,7 @@ const findChannel = (channels, payload) => {
     return channel.get('demand') == payload.demandId &&
     channel.get('supply') == payload.supplyId
   })
-  return result ? result : [undefined, undefined]
+  return result || [undefined, undefined]
 }
 
 // TODO use a Map instead of a List for the channels? Because I query them by
@@ -27,7 +27,7 @@ const findChannel = (channels, payload) => {
 // returns two values:
 //  1. the array of impressions to apply
 //  2. the remaining pendingImpressions
-function getReadyUpdates(start, pendingUpdates) {
+function getReadyUpdates (start, pendingUpdates) {
   const sorted = pendingUpdates.sort((a, b) => {
     return a.impressions - b.impressions
   })
@@ -60,9 +60,9 @@ function getReadyUpdates(start, pendingUpdates) {
 
 // I wasn't going to use gun but they have PANIC...
 
-export function supplyChannelsReducer(channels=List([]), { type, payload }) {
+export function supplyChannelsReducer (channels = List([]), { type, payload }) {
   let index, channel
-  switch(type) {
+  switch (type) {
     case 'IMPRESSION_SERVED':
       // So here, we will add the impression to pendingImpressions queue
       //  - some chance of receiving the channelUpdate on the impression before the
@@ -85,7 +85,6 @@ export function supplyChannelsReducer(channels=List([]), { type, payload }) {
     case 'CHANNEL_UPDATE':
       [index, channel] = findChannel(channels, payload)
       if (channel) {
-
         // TODO efficiency - combine with other mutations?
         // remove impression from pendingImpressions
         channel = channel.update('pendingImpressions', pendingImpressions => {
@@ -131,9 +130,7 @@ export function supplyChannelsReducer(channels=List([]), { type, payload }) {
       // payload is an array of impressions
       // [ { impressionId, signature } ... ]
 
-
       return channels
-
 
     case 'CHANNEL_OPENED':
       // TODO allow for multiple channels, right now just create a new list
@@ -158,9 +155,9 @@ export function supplyChannelsReducer(channels=List([]), { type, payload }) {
   }
 }
 
-export function admarketChannelsReducer(channels=List([]), { type, payload }) {
+export function admarketChannelsReducer (channels = List([]), { type, payload }) {
   let index, channel
-  switch(type) {
+  switch (type) {
     case 'IMPRESSION_SERVED':
       // Is there any reason to update state when an impression is received?
       // Don't think so. Maybe to track impressions that were never included in
@@ -171,7 +168,6 @@ export function admarketChannelsReducer(channels=List([]), { type, payload }) {
     case 'CHANNEL_UPDATE':
       [index, channel] = findChannel(channels, payload)
       if (channel) {
-
         // impression is next in order
         if (payload.impressions == channel.get('impressions') + 1) {
           //  - compute the state transition with the impression
@@ -201,7 +197,6 @@ export function admarketChannelsReducer(channels=List([]), { type, payload }) {
       }
       return channels
 
-
     case 'CHANNEL_OPENED':
       // TODO allow for multiple channels, right now just create a new list
       return List([makeChannel(parseChannel(payload))])
@@ -225,9 +220,9 @@ export function admarketChannelsReducer(channels=List([]), { type, payload }) {
   }
 }
 
-export function channelsReducer(channels=List([]), { type, payload }) {
+export function channelsReducer (channels = List([]), { type, payload }) {
   let index, channel
-  switch(type) {
+  switch (type) {
     case 'IMPRESSION_SERVED':
       [index, channel] = findChannel(channels, payload)
       if (channel) {
@@ -269,9 +264,8 @@ export function channelsReducer(channels=List([]), { type, payload }) {
 
 const init = Map({ Demand: Map({}), Supply: Map({}), Arbiter: Map({}) })
 
-
-export function registryReducer(registry=init, { type, payload: { address, url } }) {
-  switch(type) {
+export function registryReducer (registry = init, { type, payload: { address, url } }) {
+  switch (type) {
     case 'DEMAND_REGISTERED':
     case 'DEMAND_UPDATED':
       return registry.setIn(['Demand', address], url)
@@ -292,8 +286,6 @@ export function registryReducer(registry=init, { type, payload: { address, url }
   }
 }
 
-
-
 /*
 case 'SUPPLY_REGISTERED':
   reducer.Supply.push(payload)
@@ -312,4 +304,4 @@ case 'SUPPLY_UPDATED':
   return
   */
 
-export function blocks() {}
+export function blocks () {}

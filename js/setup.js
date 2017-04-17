@@ -78,7 +78,7 @@ export default async function (opts) {
     await wait(1500)
     // USE THE ADDRESS FROM THE TX RECEIPT TO BUILD THE CONTRACT OBJECT
     adMarketReceipt = await eth.getTransactionReceipt(adMarketTxHash)
-    adMarket = AdMarket.at(adMarketReceipt.contractAddress);
+    adMarket = AdMarket.at(adMarketReceipt.contractAddress)
   }
 
   // MAKE WEB3
@@ -86,7 +86,7 @@ export default async function (opts) {
   web3.setProvider(provider)
   web3.eth.defaultAccount = accounts[0]
 
-  return  { adMarket, AdMarket, eth, accounts, web3 }
+  return { adMarket, AdMarket, eth, accounts, web3 }
 }
 
 // async/await compatible setTimeout

@@ -40,21 +40,20 @@ const channel = {
   proposedRoot: 0
 }
 
-
 // Only need to track the most recent state
 // need to track the signature!
 // So I want to find the channel in storage and update it.
 
 var express = require('express')
-var bodyParser = require('body-parser');
+var bodyParser = require('body-parser')
 var app = express()
 
-app.use(bodyParser.json());
+app.use(bodyParser.json())
 
 // This is a hack to initialize the channel in storage before receiving
 // impressions
 // This will have to change
-app.get('/open', async function(req, res) {
+app.get('/open', async function (req, res) {
   await p(channelDB.remove.bind(channelDB))({}, { multi: true })
   await p(impressionDB.remove.bind(impressionDB))({}, { multi: true })
   await p(channelDB.insert.bind(channelDB))(channel)
@@ -63,7 +62,7 @@ app.get('/open', async function(req, res) {
   res.sendStatus(200)
 })
 
-app.get('/verify', async function(req, res) {
+app.get('/verify', async function (req, res) {
   // implement an endpoint which queries all existing data and verifies it
   // in practice, this will be used to validate an impression chain starting
   // from some checkpointed state. This will require us to query all data for
@@ -92,7 +91,7 @@ app.get('/verify', async function(req, res) {
   res.sendStatus(200)
 })
 
-app.post('/', async function(req, res) {
+app.post('/', async function (req, res) {
   const impression = req.body
 
   await p(impressionDB.insert.bind(impressionDB))(impression)
@@ -120,11 +119,10 @@ app.post('/', async function(req, res) {
   // const timeout = channelState.impressions == 1 ? 100 : 0
   const timeout = 0
 
-  setTimeout(function() {
+  setTimeout(function () {
     if (channelState.impressions == 1) {
-      request.post({ url: 'http://localhost:3001/channel_update', body: { impression, update: channelState }, json: true}, function() {})
-      request.post({ url: 'http://localhost:3002/channel_update', body: { impression, update: channelState }, json: true}, function() {})
-
+      request.post({ url: 'http://localhost:3001/channel_update', body: { impression, update: channelState }, json: true}, function () {})
+      request.post({ url: 'http://localhost:3002/channel_update', body: { impression, update: channelState }, json: true}, function () {})
     }
   }, timeout)
 
@@ -140,5 +138,3 @@ app.get('/state', function (req, res) {
 app.listen(3000, function () {
   console.log('listening on 3000')
 })
-
-

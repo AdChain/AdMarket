@@ -39,23 +39,21 @@ const channel = {
   expiration: 100,
   challengeTimeout: 100,
   proposedRoot: 0,
-  pendingUpdates: List([]),
+  pendingUpdates: List([])
 }
 
-
 var express = require('express')
-var bodyParser = require('body-parser');
+var bodyParser = require('body-parser')
 var app = express()
 
-app.use(bodyParser.json());
+app.use(bodyParser.json())
 
 let IS_OPEN = false
-
 
 // This is a hack to initialize the channel in storage before receiving
 // impressions
 // This will have to change
-app.get('/open', async function(req, res) {
+app.get('/open', async function (req, res) {
   IS_OPEN = true
   await p(channelDB.remove.bind(channelDB))({}, { multi: true })
   await p(impressionDB.remove.bind(impressionDB))({}, { multi: true })
@@ -65,8 +63,7 @@ app.get('/open', async function(req, res) {
   res.sendStatus(200)
 })
 
-app.post('/channel_update', async function(req, res) {
-
+app.post('/channel_update', async function (req, res) {
   const { impression, update } = req.body
 
   // TODO Before we dispatch, verify the inputs.
@@ -100,7 +97,7 @@ app.post('/channel_update', async function(req, res) {
   res.sendStatus(200)
 })
 
-app.get('/request_signature', async function(req, res) {
+app.get('/request_signature', async function (req, res) {
   // Just need the impression Id?
   const impressionIds = req.body
 
@@ -120,12 +117,10 @@ app.get('/request_signature', async function(req, res) {
     }
   })
 
-
   res.json(signedImpressions)
 })
 
-app.post('/', async function(req, res) {
-
+app.post('/', async function (req, res) {
   // The impression could be received before or after the channel_update.
   // Most likely it will be before, in which case we saved the impression and
   // add it the the pendingImpressions queue.
@@ -143,7 +138,6 @@ app.post('/', async function(req, res) {
 
   res.sendStatus(200)
 })
-
 
 app.listen(3002, function () {
   console.log('listening on 3002')

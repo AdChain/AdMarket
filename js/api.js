@@ -5,7 +5,7 @@
  */
 
 // Fires when demand receives the impression (after it has been saved)
-function recordImpressionServed(supplyId, impressionId, impressionPrice) {
+function recordImpressionServed (supplyId, impressionId, impressionPrice) {
   // 1. lookup the channel from the supplyId
   // 2. update the channel store with new state
   // 3. send the new state to the peer (set status to pending)
@@ -36,23 +36,19 @@ function recordImpressionServed(supplyId, impressionId, impressionPrice) {
 //    - create schema for channels
 //    - create reducer for updating channel state
 
+function saveImpression () {}
 
+function processImpression () {}
 
-function saveImpression() {}
+function saveChannel () {}
 
-function processImpression() {}
+function notifyPeer () {}
 
-function saveChannel() {}
-
-function notifyPeer() {}
-
-function recordACK() {}
+function recordACK () {}
 
 // Other messages
 
-function provideData() {}
-
-
+function provideData () {}
 
 // In order to prevent replay attacks, even those that may be accidental, we
 // need to save on the demand side intermediate state updates without ACKs. The
@@ -80,11 +76,11 @@ function provideData() {}
 // 3. I can iterate on it later, easier if I already know. Same as implementing
 //    merkle trree in JS first. From here forth, SQL is only for fun.
 
-function deliverImpression(supplyId, impressionId) {
+function deliverImpression (supplyId, impressionId) {
   //
 }
 
-function ackReceived(supplyId, impressionId) {
+function ackReceived (supplyId, impressionId) {
   //
 }
 

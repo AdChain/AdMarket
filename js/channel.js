@@ -33,7 +33,7 @@ const makeChannel = (channelObj, impressionObj) => {
 }
 
 const sign = (msgHash, privKey) => {
-  if (typeof msgHash == 'string' && msgHash.slice(0, 2) == '0x') {
+  if (typeof msgHash === 'string' && msgHash.slice(0, 2) == '0x') {
     msgHash = Buffer(msgHash.slice(2), 'hex')
   }
   const sig = ethUtils.ecsign(msgHash, privKey)
@@ -60,7 +60,7 @@ const getFingerprint = (channel) => {
 }
 
 const getRoot = (channel, prevRoot) => {
-  return '0x'+merkleRoot([
+  return '0x' + merkleRoot([
     `impId:${channel.impressionId}`,
     `impPrice:${channel.price}`,
     `impCount:${channel.impressions}`,
@@ -99,8 +99,8 @@ const solSha3 = (...args) => {
 }
 
 const isValidUpdate = (update) => {
-  return typeof update.price == 'number' && update.price > 0 &&
-    typeof update.impressionId == 'string'
+  return typeof update.price === 'number' && update.price > 0 &&
+    typeof update.impressionId === 'string'
 }
 
 const makeUpdate = (channel, update, doSign) => {
@@ -141,7 +141,6 @@ const parseBN = (bigNumber) => {
   return +bigNumber.toString()
 }
 
-
 const sum = (arr) => {
   return arr.reduce((acc, el) => {
     acc += el
@@ -149,8 +148,8 @@ const sum = (arr) => {
 }
 
 const ecrecover = (msg, sig) => {
-  const r = ethUtils.toBuffer(sig.slice(0,66))
-  const s = ethUtils.toBuffer('0x' + sig.slice(66,130))
+  const r = ethUtils.toBuffer(sig.slice(0, 66))
+  const s = ethUtils.toBuffer('0x' + sig.slice(66, 130))
   const v = 27 + parseInt(sig.slice(130, 132))
   const m = ethUtils.toBuffer(msg)
   const pub = ethUtils.ecrecover(m, v, r, s)

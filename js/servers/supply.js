@@ -42,19 +42,18 @@ const channel = {
   pendingUpdateRequests: List([])
 }
 
-
 var express = require('express')
-var bodyParser = require('body-parser');
+var bodyParser = require('body-parser')
 var app = express()
 
-app.use(bodyParser.json());
+app.use(bodyParser.json())
 
 let IS_OPEN = false
 
 // This is a hack to initialize the channel in storage before receiving
 // impressions
 // This will have to change
-app.get('/open', async function(req, res) {
+app.get('/open', async function (req, res) {
   IS_OPEN = true
   await p(channelDB.remove.bind(channelDB))({}, { multi: true })
   await p(impressionDB.remove.bind(impressionDB))({}, { multi: true })
@@ -64,7 +63,7 @@ app.get('/open', async function(req, res) {
   res.sendStatus(200)
 })
 
-app.get('/verify', async function(req, res) {
+app.get('/verify', async function (req, res) {
   // implement an endpoint which queries all existing data and verifies it
   // in practice, this will be used to validate an impression chain starting
   // from some checkpointed state. This will require us to query all data for
@@ -93,8 +92,7 @@ app.get('/verify', async function(req, res) {
   res.sendStatus(200)
 })
 
-app.post('/channel_update', async function(req, res) {
-
+app.post('/channel_update', async function (req, res) {
   const { impression, update } = req.body
 
   // TODO Before we dispatch, verify the inputs.
@@ -128,8 +126,7 @@ app.post('/channel_update', async function(req, res) {
   res.sendStatus(200)
 })
 
-app.post('/', async function(req, res) {
-
+app.post('/', async function (req, res) {
   // The impression could be received before or after the channel_update.
   // Most likely it will be before, in which case we saved the impression and
   // add it the the pendingImpressions queue.
@@ -145,11 +142,14 @@ app.post('/', async function(req, res) {
 
   // TODO Before we dispatch, verify the inputs.
 
-  dispatch({ type: 'IMPRESSION_SERVED', payload: {
-    demandId: impression.demandId, supplyId: impression.supplyId,
-    impressionId: impression.impressionId, price: impression.price,
-    time: impression.time
-  }})
+  dispatch({ type: 'IMPRESSION_SERVED',
+    payload: {
+      demandId: impression.demandId,
+      supplyId: impression.supplyId,
+      impressionId: impression.impressionId,
+      price: impression.price,
+      time: impression.time
+    }})
 
   // console.log(store.getState().get(0))
 
@@ -178,8 +178,8 @@ app.listen(3001, function () {
   console.log('listening on 3001')
 })
 
-function requestSignatures(impressionIds, cb) {
-  request.get({ url: 'http://localhost:3002/request_signature', body: impressionIds, json: true }, function(err, res, body) {
+function requestSignatures (impressionIds, cb) {
+  request.get({ url: 'http://localhost:3002/request_signature', body: impressionIds, json: true }, function (err, res, body) {
     if (err) { throw err }
     console.log(body)
     const signedImpressions = body
@@ -194,7 +194,6 @@ function requestSignatures(impressionIds, cb) {
     // TODO save signature to a new database
 
     if (signedImpressions && signedImpressions.length) {
-
       const valid = signatures.filter(({ impressionId, signature }) => {
         // TODO get the address from the channel
         // should this just be part of the reducer?
@@ -212,13 +211,12 @@ function requestSignatures(impressionIds, cb) {
   })
 }
 
-
 // long running process which queries the AdMarket for pendingImpressions
 // looping over all pending impressions seems simpler than putting setTimeouts
 // for each impressions
-function loopPendingImpressions(timeout) {
+function loopPendingImpressions (timeout) {
   console.log('loop')
-  setTimeout(function() {
+  setTimeout(function () {
     if (IS_OPEN) {
       const now = new Date() / 1000
       const pending = store.getState().get(0).get('pendingImpressions').filter(impression => {
@@ -226,7 +224,7 @@ function loopPendingImpressions(timeout) {
       }).map(impression => impression.impressionId)
       console.log(pending)
 
-      requestSignatures(pending.toJS(), function(err) {
+      requestSignatures(pending.toJS(), function (err) {
         if (err) { throw err }
         loopPendingImpressions(timeout)
       })
