@@ -21,7 +21,6 @@ const web3 = new Web3()
 // preference is to use redux + mori + some persistance (check my stars)
 
 describe('AdMarket', async () => {
-
   let adMarket, eth, accounts, web3
   let snapshotId, filter
 
@@ -239,9 +238,6 @@ describe('AdMarket', async () => {
       impressionId: web3.sha3('bar'),
       impressionPrice: 2
     }
-
-
-
   })
 
   it('verifySignature', async () => {
@@ -263,7 +259,6 @@ describe('AdMarket', async () => {
     assert.ok(verifySignature(channel, sig, accounts[0]))
   })
 })
-
 
   // TODO test Join edge cases
 
@@ -312,15 +307,15 @@ describe('AdMarket', async () => {
   })
   */
 
-function makeString(char, length) {
+function makeString (char, length) {
   let string = ''
-  for (let i=0; i < length; i++) {
+  for (let i = 0; i < length; i++) {
     string += char
   }
   return string
 }
 
-function range(max) {
+function range (max) {
   const arr = []
   for (let i = 0; i < max; i++) {
     arr.push(i + 1)
