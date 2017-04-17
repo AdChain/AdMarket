@@ -18,7 +18,7 @@ const web3 = new Web3()
 
 const p = Promise.promisify
 
-const rootReducer = combineReducers(channelsReducer)
+// const rootReducer = combineReducers(channelsReducer)
 const store = createStore(channelsReducer)
 const dispatch = store.dispatch
 
@@ -117,13 +117,15 @@ app.post('/', async function(req, res) {
   )
 
   // no timeout for impressions=2, 100ms timeout for impressions=1
-  const timeout = channelState.impressions == 1 ? 100 : 0
+  // const timeout = channelState.impressions == 1 ? 100 : 0
+  const timeout = 0
 
   setTimeout(function() {
-    request.post({ url: 'http://localhost:3001/channel_update', body: { impression, update: channelState }, json: true}, function() {})
-    /*
     if (channelState.impressions == 1) {
-    }*/
+      request.post({ url: 'http://localhost:3001/channel_update', body: { impression, update: channelState }, json: true}, function() {})
+      request.post({ url: 'http://localhost:3002/channel_update', body: { impression, update: channelState }, json: true}, function() {})
+
+    }
   }, timeout)
 
   // const saved = await p(channelDB.find.bind(channelDB))({ channelId: CHANNEL_ID})

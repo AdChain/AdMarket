@@ -39,76 +39,6 @@ function getReadyUpdates(start, pendingUpdates) {
   return stop == -1 ? [sorted, List([])] : [sorted.slice(0, stop), sorted.slice(stop)]
 }
 
-export function admarketChannelsReducer(channels=List([]), { type, payload }) {
-  let index, channel
-  switch(type) {
-    case 'IMPRESSION_SERVED':
-      // Is there any reason to update state when an impression is received?
-      // Don't think so. Maybe to track impressions that were never included in
-      // the channel state, to delete them? We need to make sure to prune
-      // impressions on all nodes, actually.
-
-    case 'CHANNEL_UPDATE':
-      [index, channel] = findChannel(channels, payload)
-      if (channel) {
-
-        // impression is next in order
-        if (payload.impressions == channel.get('impressions') + 1) {
-          //  - compute the state transition with the impression
-          //  - sort the pending impressions
-          //  - loop over the pending impressions and apply them until one is out
-          //  of order
-          //  - remove applied impressions from pool
-          //  - also cancel the setTimeout functions
-          const final = channel.withMutations(channel => {
-            const [toMerge, pending] = getReadyUpdates(payload.impressions, channel.get('pendingUpdates'))
-            toMerge.reduce((channel, impression) => {
-              return makeUpdate(channel, impression)
-            }, makeUpdate(channel, payload))
-            channel.set('pendingUpdates', pending)
-          })
-          return channels.set(index, final)
-        } else {
-          //  - add it to the list of pending impressions
-          //  - start a setTimeout (10s) and if the impression event isn't received by supply
-          //  - this setTimeout should not cancel until either the demand responds
-          //  with the impression or the arbiter responds that it is invalid.
-          //  - the setTimeout should dispatch which replaces existing timeout with
-          //  the new one
-          const final = channel.update('pendingUpdates', pending => pending.push(payload))
-          return channels.set(index, final)
-        }
-      }
-      return channels
-
-
-    case 'SIGNATURES_RECEIVED':
-      // Payload needs to have data enough to lookup channel
-      // The impressions/signatures could be from multiple channels
-      // This becomes easier if we store a channelId on each
-    case 'CHANNEL_OPENED':
-      // TODO allow for multiple channels, right now just create a new list
-      return List([makeChannel(parseChannel(payload))])
-    case 'CHANNEL_CHECKPOINT_PROPOSED':
-      [index, channel] = findChannel(channels, payload)
-      return channels.setIn([index, 'state'], 1)
-    case 'CHANNEL_CHECKPOINT_CHALLENGED':
-
-    case 'CHANNEL_CHECKPOINT_CHALLENGE_ACCEPTED':
-
-    case 'CHANNEL_CLOSE_PROPOSED':
-
-    case 'CHANNEL_CLOSE_CHALLENGED':
-
-    case 'CHANNEL_CLOSE_CHALLENGE_ACCEPTED':
-
-    case 'CHANNEL_CLOSED':
-
-    default:
-      return channels
-  }
-}
-
 // IMPRESSION_SERVED should mean the same thing on supply and demand. It is the
 // event fired in response to receiving the impression served beacon from the
 // browser.
@@ -190,6 +120,87 @@ export function supplyChannelsReducer(channels=List([]), { type, payload }) {
         }
       }
       return channels
+
+    case 'SIGNATURES_RECEIVED':
+      // Payload needs to have data enough to lookup channel
+      // The impressions/signatures could be from multiple channels
+      // This becomes easier if we store a channelId on each
+
+      // TODO multiple channels - for now just do it for one
+
+      // payload is an array of impressions
+      // [ { impressionId, signature } ... ]
+
+
+      return channels
+
+
+    case 'CHANNEL_OPENED':
+      // TODO allow for multiple channels, right now just create a new list
+      return List([makeChannel(parseChannel(payload))])
+    case 'CHANNEL_CHECKPOINT_PROPOSED':
+      [index, channel] = findChannel(channels, payload)
+      return channels.setIn([index, 'state'], 1)
+    case 'CHANNEL_CHECKPOINT_CHALLENGED':
+
+    case 'CHANNEL_CHECKPOINT_CHALLENGE_ACCEPTED':
+
+    case 'CHANNEL_CLOSE_PROPOSED':
+
+    case 'CHANNEL_CLOSE_CHALLENGED':
+
+    case 'CHANNEL_CLOSE_CHALLENGE_ACCEPTED':
+
+    case 'CHANNEL_CLOSED':
+
+    default:
+      return channels
+  }
+}
+
+export function admarketChannelsReducer(channels=List([]), { type, payload }) {
+  let index, channel
+  switch(type) {
+    case 'IMPRESSION_SERVED':
+      // Is there any reason to update state when an impression is received?
+      // Don't think so. Maybe to track impressions that were never included in
+      // the channel state, to delete them? We need to make sure to prune
+      // impressions on all nodes, actually.
+      return channels
+
+    case 'CHANNEL_UPDATE':
+      [index, channel] = findChannel(channels, payload)
+      if (channel) {
+
+        // impression is next in order
+        if (payload.impressions == channel.get('impressions') + 1) {
+          //  - compute the state transition with the impression
+          //  - sort the pending impressions
+          //  - loop over the pending impressions and apply them until one is out
+          //  of order
+          //  - remove applied impressions from pool
+          //  - also cancel the setTimeout functions
+          const final = channel.withMutations(channel => {
+            const [toMerge, pending] = getReadyUpdates(payload.impressions, channel.get('pendingUpdates'))
+            toMerge.reduce((channel, impression) => {
+              return makeUpdate(channel, impression)
+            }, makeUpdate(channel, payload))
+            channel.set('pendingUpdates', pending)
+          })
+          return channels.set(index, final)
+        } else {
+          //  - add it to the list of pending impressions
+          //  - start a setTimeout (10s) and if the impression event isn't received by supply
+          //  - this setTimeout should not cancel until either the demand responds
+          //  with the impression or the arbiter responds that it is invalid.
+          //  - the setTimeout should dispatch which replaces existing timeout with
+          //  the new one
+          const final = channel.update('pendingUpdates', pending => pending.push(payload))
+          return channels.set(index, final)
+        }
+      }
+      return channels
+
 
     case 'CHANNEL_OPENED':
       // TODO allow for multiple channels, right now just create a new list

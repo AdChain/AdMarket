@@ -9,16 +9,15 @@ import { List } from 'immutable'
 import request from 'request'
 import { supplyChannelsReducer } from '../reducers'
 import { supImpDB as impressionDB, supChDB as channelDB } from '../storage'
-import { makeChannel, makeUpdate } from '../channel'
+import { makeChannel, makeUpdate, ecrecover } from '../channel'
 import Promise from 'bluebird'
 import Web3 from 'web3'
-
 
 const web3 = new Web3()
 
 const p = Promise.promisify
 
-const rootReducer = combineReducers(supplyChannelsReducer)
+// const rootReducer = combineReducers(supplyChannelsReducer)
 const store = createStore(supplyChannelsReducer)
 const dispatch = store.dispatch
 
@@ -156,8 +155,8 @@ app.post('/', async function(req, res) {
 
   const channelState = store.getState().toJS()[0]
 
-  console.log('\nIMPRESSION_SERVED - CHANNEL STATE\n')
-  console.log(channelState)
+  // console.log('\nIMPRESSION_SERVED - CHANNEL STATE\n')
+  // console.log(channelState)
 
   await p(channelDB.update.bind(channelDB))(
     { channelId: CHANNEL_ID },
@@ -179,17 +178,37 @@ app.listen(3001, function () {
   console.log('listening on 3001')
 })
 
-function requestSignature(impressionIds) {
+function requestSignatures(impressionIds, cb) {
   request.get({ url: 'http://localhost:3002/request_signature', body: impressionIds, json: true }, function(err, res, body) {
     if (err) { throw err }
     console.log(body)
-    const signatures = body
+    const signedImpressions = body
 
-    // save signatures?
+    // filter out invalid impressions, only dispatch the ones that succeeded
+    // retry the failed impressions? need some limit or timeout.
+    // if the demand is unresponsive, we close the channel
+    // if the adMarket is unresponsive, we should do the same
 
-    if (signatures && signatures.length) {
+    // TODO verify signature before saving it
+    // TODO create a keypair for each participant for testing
+    // TODO save signature to a new database
+
+    if (signedImpressions && signedImpressions.length) {
+
+      const valid = signatures.filter(({ impressionId, signature }) => {
+        // TODO get the address from the channel
+        // should this just be part of the reducer?
+        // 1. pass the bundle of impressionIds
+        return ecrecover(web3.sha3(impressionId), signature) == config.adMarket.address
+      })
+
       dispatch({ type: 'SIGNATURES_RECEIVED', payload: signatures })
     }
+
+    // Send the bundle of signed impressions (send actual impressions) to
+    // Demand
+
+    cb()
   })
 }
 
@@ -198,17 +217,23 @@ function requestSignature(impressionIds) {
 // looping over all pending impressions seems simpler than putting setTimeouts
 // for each impressions
 function loopPendingImpressions(timeout) {
+  console.log('loop')
   setTimeout(function() {
     if (IS_OPEN) {
       const now = new Date() / 1000
       const pending = store.getState().get(0).get('pendingImpressions').filter(impression => {
         return now - impression.time > 2
+      }).map(impression => impression.impressionId)
+      console.log(pending)
+
+      requestSignatures(pending.toJS(), function(err) {
+        if (err) { throw err }
+        loopPendingImpressions(timeout)
       })
-      console.log('\nTRIGGER\n')
-      console.log(pending.toJS())
+    } else {
+      loopPendingImpressions(timeout)
     }
-    loopPendingImpressions(timeout)
   }, timeout)
 }
 
-// loopPendingImpressions(2000)
+loopPendingImpressions(2000)

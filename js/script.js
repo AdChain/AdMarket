@@ -26,7 +26,11 @@ function openChannel(cb) {
     request.get({ url: 'http://localhost:3001/open'}, function(err, res, body) {
       if (err) { throw err }
       console.log('Opened Supply')
-      cb()
+      request.get({ url: 'http://localhost:3002/open'}, function(err, res, body) {
+        if (err) { throw err }
+        console.log('Opened AdMarket')
+        cb()
+      })
     })
   })
 }
@@ -38,14 +42,21 @@ openChannel(function () {
       if (err) { throw err }
       // console.log('Sent Impression to Demand')
       count++
-      if (count == 2) { cb() }
+      if (count == 3) { cb() }
     });
 
     request.post({ url: 'http://localhost:3001', body: impression, json: true }, function(err, res, body) {
       if (err) { throw err }
       // console.log('Sent Impression to Supply')
       count++
-      if (count == 2) { cb() }
+      if (count == 3) { cb() }
+    });
+
+    request.post({ url: 'http://localhost:3002', body: impression, json: true }, function(err, res, body) {
+      if (err) { throw err }
+      // console.log('Sent Impression to AdMarket')
+      count++
+      if (count == 3) { cb() }
     });
 
   }, function(err) {

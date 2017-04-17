@@ -5,18 +5,22 @@
 import { createStore } from 'redux'
 import { combineReducers } from 'redux-immutable'
 import { List } from 'immutable'
-import { supplyChannelsReducer } from '../reducers'
+import { admarketChannelsReducer } from '../reducers'
 import { amImpDB as impressionDB, amChDB as channelDB } from '../storage'
-import { makeChannel, makeUpdate } from '../channel'
+import { makeChannel, makeUpdate, sign } from '../channel'
+import config from '../config'
 import Promise from 'bluebird'
 import Web3 from 'web3'
 
 const web3 = new Web3()
+const sha3 = web3.sha3
 
 const p = Promise.promisify
 
-const rootReducer = combineReducers(admarketChannelsReducer)
-const store = createStore(rootReducer)
+const privKey = new Buffer(config.adMarket.privKey, 'hex')
+
+// const rootReducer = combineReducers(admarketChannelsReducer)
+const store = createStore(admarketChannelsReducer)
 const dispatch = store.dispatch
 
 const CHANNEL_ID = web3.sha3('foo')
@@ -100,13 +104,24 @@ app.get('/request_signature', async function(req, res) {
   // Just need the impression Id?
   const impressionIds = req.body
 
+  console.log(impressionIds)
+
   const savedImpressions = await p(impressionDB.find.bind(impressionDB))({
     impressionId: { $in: impressionIds }
   })
 
+  // needs to return signed impressions, each signed individually
+  // [ { impressionId, signature } ... ]
   console.log(savedImpressions)
+  const signedImpressions = savedImpressions.map(impression => {
+    return {
+      impressionId: impression.impressionId,
+      signature: sign(sha3(impression.impressionId), privKey)
+    }
+  })
 
-  res.json(savedImpressions)
+
+  res.json(signedImpressions)
 })
 
 app.post('/', async function(req, res) {
@@ -121,8 +136,15 @@ app.post('/', async function(req, res) {
 
   const impression = req.body
 
+  console.log(impression)
+
   // TODO If impression doesn't exist in DB, save it. (for now just save)
   await p(impressionDB.insert.bind(impressionDB))(impression)
 
   res.sendStatus(200)
+})
+
+
+app.listen(3002, function () {
+  console.log('listening on 3002')
 })

@@ -158,7 +158,7 @@ const ecrecover = (msg, sig) => {
 }
 
 export { parseChannel, getFingerprint, getRoot, solSha3, parseLogAddress,
-  verifySignature, makeUpdate, verifyUpdate, parseBN, makeChannel }
+  verifySignature, makeUpdate, verifyUpdate, parseBN, makeChannel, sign, ecrecover }
 
 /*
  * Punt on validation - data coming from blockchain is assumed to be valid
