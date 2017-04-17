@@ -1,0 +1,14 @@
+machine:
+  node:
+    version: 6
+
+dependencies:
+  post:
+    - npm run testrpc:
+        background: true
+    - sleep 5
+
+test:
+  override:
+    # - npm run lint
+    - npm run test
