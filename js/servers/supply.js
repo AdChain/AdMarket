@@ -9,6 +9,7 @@ import { List } from 'immutable'
 import request from 'request'
 import { supplyChannelsReducer } from '../reducers'
 import { supImpDB as impressionDB, supChDB as channelDB } from '../storage'
+import config from '../config'
 import { makeChannel, makeUpdate, ecrecover } from '../channel'
 import Promise from 'bluebird'
 import Web3 from 'web3'
@@ -194,14 +195,17 @@ function requestSignatures (impressionIds, cb) {
     // TODO save signature to a new database
 
     if (signedImpressions && signedImpressions.length) {
-      const valid = signatures.filter(({ impressionId, signature }) => {
+
+      const validSignedImpressions = signedImpressions.filter(impression => {
         // TODO get the address from the channel
         // should this just be part of the reducer?
         // 1. pass the bundle of impressionIds
-        return ecrecover(web3.sha3(impressionId), signature) == config.adMarket.address
+        return ecrecover(web3.sha3(impression.impressionId), impression.signature) == config.adMarket.address
       })
 
-      dispatch({ type: 'SIGNATURES_RECEIVED', payload: signatures })
+      console.log(validSignedImpressions)
+
+      dispatch({ type: 'SIGNATURES_RECEIVED', payload: validSignedImpressions })
     }
 
     // Send the bundle of signed impressions (send actual impressions) to
@@ -221,7 +225,7 @@ function loopPendingImpressions (timeout) {
       const now = new Date() / 1000
       const pending = store.getState().get(0).get('pendingImpressions').filter(impression => {
         return now - impression.time > 2
-      }).map(impression => impression.impressionId)
+      })
       console.log(pending)
 
       requestSignatures(pending.toJS(), function (err) {
