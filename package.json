@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node js/servers",
     "test": "jest --coverage",
     "testrpc": "testrpc -d -m elegant ability lawn fiscal fossil general swarm trap bind require exchange ostrich"
   },
