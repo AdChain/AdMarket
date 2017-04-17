@@ -4,6 +4,7 @@ build/
 npm-debug.log
 testdb/
 serverdb/
+coverage/
 
 *~
 .*~
@@ -12,3 +13,5 @@ serverdb/
 *.swo
 .*.swp
 .*.swo
+*.log
+*.log.*
