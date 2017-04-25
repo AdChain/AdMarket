@@ -2,10 +2,11 @@
 // Helper script to hit servers as I develop
 // will eventually become api clients
 
-var each = require('async/each')
-var request = require('request')
+const request = require('request-promise')
 
-var generateImpressions = function (count, price, supplyId, demandId) {
+const wait = timeout => new Promise(resolve => setTimeout(resolve, timeout))
+
+function generateImpressions (count, price, supplyId, demandId) {
   const impressions = []
   for (let i = 0; i < count; i++) {
     impressions.push({ price, supplyId, demandId, impressionId: (i + 1).toString(), time: new Date().getTime() / 1000 })
@@ -19,70 +20,65 @@ const supplyId = '0x22222222222222222222'
 const impressions = generateImpressions(2, 1, supplyId, demandId)
 console.log(impressions)
 
-function openChannel (cb) {
-  request.get({ url: 'http://localhost:3000/open'}, function (err, res, body) {
-    if (err) { throw err }
-    console.log('Opened Demand')
-    request.get({ url: 'http://localhost:3001/open'}, function (err, res, body) {
-      if (err) { throw err }
-      console.log('Opened Supply')
-      request.get({ url: 'http://localhost:3002/open'}, function (err, res, body) {
-        if (err) { throw err }
-        console.log('Opened AdMarket')
-        cb()
-      })
-    })
+async function openChannel () {
+  await request('http://localhost:3000/open')
+  console.log('Opened Demand')
+
+  await request('http://localhost:3001/open')
+  console.log('Opened Supply')
+
+  await request('http://localhost:3002/open')
+  console.log('Opened AdMarket')
+}
+
+async function sendImpression (impression) {
+  await request.post({
+    url: 'http://localhost:3000',
+    body: impression,
+    json: true
+  })
+
+  await request.post({
+    url: 'http://localhost:3001',
+    body: impression,
+    json: true
+  })
+
+  await request.post({
+    url: 'http://localhost:3002',
+    body: impression,
+    json: true
   })
 }
 
-openChannel(function () {
-  each(impressions, function (impression, cb) {
-    let count = 0
-    request.post({ url: 'http://localhost:3000', body: impression, json: true }, function (err, res, body) {
-      if (err) { throw err }
-      // console.log('Sent Impression to Demand')
-      count++
-      if (count == 3) { cb() }
-    })
+async function main () {
+  await openChannel()
 
-    request.post({ url: 'http://localhost:3001', body: impression, json: true }, function (err, res, body) {
-      if (err) { throw err }
-      // console.log('Sent Impression to Supply')
-      count++
-      if (count == 3) { cb() }
-    })
+  for (const impression of impressions) {
+    await sendImpression(impression)
+  }
 
-    request.post({ url: 'http://localhost:3002', body: impression, json: true }, function (err, res, body) {
-      if (err) { throw err }
-      // console.log('Sent Impression to AdMarket')
-      count++
-      if (count == 3) { cb() }
-    })
-  }, function (err) {
-    if (err) {
-      console.log(err)
-    } else {
-      console.log('done')
-    }
-    setTimeout(function () {
-      request('http://localhost:3001/state', function (err, res, body) {
-          // console.log(JSON.stringify(JSON.parse(body), null, 2))
-          // const root = JSON.parse(body)[0].root
-        console.log(JSON.parse(body)[0])
+  await wait(1000)
 
-          /*
-          request.get({ url: 'http://localhost:3000/verify', body: {
-            supplyId: supplyId,
-            demandId: demandId,
-            root: root,
-            start: 0,
-            end: 2
-          }, json: true }, function(err, res, body) {
-            console.log('PEWPEWPEW')
-            console.log(body)
-          });
-          */
-      })
-    }, 1000)
-  })
+  const body = await request('http://localhost:3001/state')
+
+  console.log(JSON.parse(body)[0])
+
+  /*
+  request.get({ url: 'http://localhost:3000/verify', body: {
+    supplyId: supplyId,
+    demandId: demandId,
+    root: root,
+    start: 0,
+    end: 2
+  }, json: true }, function(err, res, body) {
+    console.log('PEWPEWPEW')
+    console.log(body)
+  });
+  */
+}
+
+main().catch((err) => {
+  console.error(err.stack)
+  process.exit(1)
 })
