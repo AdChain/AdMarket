@@ -121,16 +121,29 @@ export function supplyChannelsReducer (channels = List([]), { type, payload }) {
       return channels
 
     case 'SIGNATURES_RECEIVED':
-      // Payload needs to have data enough to lookup channel
-      // The impressions/signatures could be from multiple channels
-      // This becomes easier if we store a channelId on each
-
       // TODO multiple channels - for now just do it for one
-
+      // hack - we get to assume all impressions are for the same channel
+      // future - we have to separate out impressions by channels, loop through
+      //  each channel separately
+      //
       // payload is an array of impressions
-      // [ { impressionId, signature } ... ]
+      // [ { impressionId, signature, price, ... } ... ]
 
-      return channels
+      [index, channel] = findChannel(channels, payload)
+      if (channel) {
+        // remove the impressions from the pendingImpressions queue
+        // add the impressions to the pendingUpdateRequests queue
+
+
+
+
+
+
+      } else {
+        return channels
+      }
+
+
 
     case 'CHANNEL_OPENED':
       // TODO allow for multiple channels, right now just create a new list
