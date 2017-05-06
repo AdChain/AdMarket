@@ -8,7 +8,7 @@
     "start": "node js/servers",
     "test": "jest --coverage",
     "mocha": "mocha ./js/loader_test.js -R spec --timeout 2000000",
-    "testrpc": "testrpc -d -m elegant ability lawn fiscal fossil general swarm trap bind require exchange ostrich"
+    "testrpc": "testrpc -d -m 'elegant ability lawn fiscal fossil general swarm trap bind require exchange ostrich'"
   },
   "author": "",
   "license": "ISC",

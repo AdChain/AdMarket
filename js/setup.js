@@ -12,7 +12,7 @@ const TESTRPC_PORT = 8545
 const MNEMONIC = 'elegant ability lawn fiscal fossil general swarm trap bind require exchange ostrich'
 
 // opts
-// initTestRPC - if true, starts a testRPC server
+// testRPCServer - if true, starts a testRPC server
 // mnemonic - seed for accounts
 // port - testrpc port
 // noDeploy - if true, skip adMarket contract deployment
@@ -27,6 +27,7 @@ export default async function (opts) {
 
   const CHANNEL_TIMEOUT = 172800 // 30 days of 15s blocks on average
   const CHALLENGE_PERIOD = 5760 // 1 day of 15s blocks on average
+  const OWNER_URL = 'foo.net'
 
   // START TESTRPC PROVIDER
   let provider
@@ -34,7 +35,7 @@ export default async function (opts) {
     provider = new HttpProvider(opts.testRPCProvider)
   } else {
     provider = TestRPC.provider({
-      mnemonic: mnemonic
+      mnemonic: mnemonic,
     })
   }
 
@@ -73,7 +74,7 @@ export default async function (opts) {
 
   if (!noDeploy) {
     // DEPLOY THE ADMARKET CONTRACT
-    adMarketTxHash = await AdMarket.new(CHANNEL_TIMEOUT, CHALLENGE_PERIOD)
+    adMarketTxHash = await AdMarket.new(OWNER_URL, CHANNEL_TIMEOUT, CHALLENGE_PERIOD)
     await wait(1500)
     // USE THE ADDRESS FROM THE TX RECEIPT TO BUILD THE CONTRACT OBJECT
     adMarketReceipt = await eth.getTransactionReceipt(adMarketTxHash)

@@ -3,10 +3,10 @@ import p from 'es6-promisify'
 import Web3 from 'web3'
 import MerkleTree, { checkProof, merkleRoot } from 'merkle-tree-solidity'
 import { sha3 } from 'ethereumjs-util'
-import setup from '../setup'
+import setup from './setup'
 import { parseChannel, getFingerprint, getRoot, solSha3, parseLogAddress,
-  verifySignature, makeUpdate, verifyUpdate, parseBN } from '../channel'
-import { wait } from '../utils'
+  verifySignature, makeUpdate, verifyUpdate, parseBN } from './channel'
+import { wait } from './utils'
 
 // jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000
 
@@ -20,11 +20,12 @@ const web3 = new Web3()
 // need to manage state machine between both nodes, interaction with adMarket
 
 describe('AdMarket', async () => {
+
   let adMarket, eth, accounts, web3
   let snapshotId, filter
 
-  beforeAll(async () => {
-    let result = await setup()
+  before(async () => {
+    let result = await setup({ testRPCProvider: 'http://localhost:8545'})
     adMarket = result.adMarket
     eth = result.eth
     accounts = result.accounts
@@ -71,9 +72,10 @@ describe('AdMarket', async () => {
 
   it('registerSupply', async () => {
     const supply = accounts[1]
-    await adMarket.registerSupply(supply)
+    const url = 'foo'
+    await adMarket.registerSupply(supply, url)
     const result = await adMarket.registeredSupply(supply)
-    assert.equal(result[0], true)
+    assert.equal(result[0], url)
 
     const logs = await p(filter.get.bind(filter))()
     const logAddress = parseLogAddress(logs[0].topics[1])
@@ -96,7 +98,7 @@ describe('AdMarket', async () => {
   it('deregisterSupply', async () => {
     const supply = accounts[1]
     const url = 'foo'
-    await adMarket.registerSupply(supply)
+    await adMarket.registerSupply(supply, url)
     await adMarket.deregisterSupply(supply)
     const result = await adMarket.registeredSupply(supply)
     assert.equal(result[0], '')
@@ -136,9 +138,10 @@ describe('AdMarket', async () => {
     const demand = accounts[1]
     const supply = accounts[2]
     const demandUrl = 'foo'
+    const supplyUrl = 'bar'
     const channelId = solSha3(0)
     await adMarket.registerDemand(demand, demandUrl)
-    await adMarket.registerSupply(supply)
+    await adMarket.registerSupply(supply, supplyUrl)
 
     const blockNumber = await p(web3.eth.getBlockNumber.bind(web3.eth))()
     const channelTimeout = parseBN((await p(adMarket.channelTimeout)())[0])
@@ -163,9 +166,10 @@ describe('AdMarket', async () => {
     const demand = accounts[1]
     const supply = accounts[2]
     const demandUrl = 'foo'
+    const supplyUrl = 'bar'
     const channelId = solSha3(0)
     await adMarket.registerDemand(demand, demandUrl)
-    await adMarket.registerSupply(supply)
+    await adMarket.registerSupply(supply, supplyUrl)
     await adMarket.openChannel(supply, { from: demand })
     const channel = parseChannel(await adMarket.getChannel(channelId))
 
@@ -187,12 +191,13 @@ describe('AdMarket', async () => {
     assert.equal(updatedChannel.proposedRoot, proposedRoot)
   })
 
-  it('challengeCheckpointChannel', async () => {
+  it.skip('challengeCheckpointChannel', async () => {
     const demand = accounts[1]
     const supply = accounts[2]
     const demandUrl = 'foo'
+    const supplyUrl = 'bar'
     await adMarket.registerDemand(demand, demandUrl)
-    await adMarket.registerSupply(supply)
+    await adMarket.registerSupply(supply, supplyUrl)
     await adMarket.openChannel(supply, { from: demand })
     const channel = parseChannel(await adMarket.getChannel(channelId))
 
