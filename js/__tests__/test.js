@@ -8,7 +8,7 @@ import { parseChannel, getFingerprint, getRoot, solSha3, parseLogAddress,
   verifySignature, makeUpdate, verifyUpdate, parseBN } from '../channel'
 import { wait } from '../utils'
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000
+// jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000
 
 const web3 = new Web3()
 
@@ -18,7 +18,6 @@ const web3 = new Web3()
 // reference implementation. 2 weeks till completion.
 // offchain storage combines with this.
 // need to manage state machine between both nodes, interaction with adMarket
-// preference is to use redux + mori + some persistance (check my stars)
 
 describe('AdMarket', async () => {
   let adMarket, eth, accounts, web3
@@ -81,18 +80,6 @@ describe('AdMarket', async () => {
     assert.equal(logAddress, supply)
   })
 
-  it('registerArbiter', async () => {
-    const arbiter = accounts[1]
-    const url = 'foo'
-    await adMarket.registerArbiter(arbiter, url)
-    const result = await adMarket.registeredArbiter(arbiter)
-    assert.equal(result[0], url)
-
-    const logs = await p(filter.get.bind(filter))()
-    const logAddress = parseLogAddress(logs[0].topics[1])
-    assert.equal(logAddress, arbiter)
-  })
-
   it('deregisterDemand', async () => {
     const demand = accounts[1]
     const url = 'foo'
@@ -119,19 +106,6 @@ describe('AdMarket', async () => {
     assert.equal(logAddress, supply)
   })
 
-  it('deregisterArbiter', async () => {
-    const arbiter = accounts[1]
-    const url = 'foo'
-    await adMarket.registerArbiter(arbiter, url)
-    await adMarket.deregisterArbiter(arbiter)
-    const result = await adMarket.registeredArbiter(arbiter)
-    assert.equal(result[0], '')
-
-    const logs = await p(filter.get.bind(filter))()
-    const logAddress = parseLogAddress(logs[1].topics[1])
-    assert.equal(logAddress, arbiter)
-  })
-
   it('updateDemandUrl', async () => {
     const demand = accounts[1]
     const url = 'foo'
@@ -145,35 +119,32 @@ describe('AdMarket', async () => {
     assert.equal(logAddress, demand)
   })
 
-  it('updateArbiterUrl', async () => {
-    const arbiter = accounts[1]
+  it('updateSupplyUrl', async () => {
+    const supply = accounts[1]
     const url = 'foo'
-    await adMarket.registerArbiter(arbiter, url)
-    await adMarket.updateArbiterUrl('bar', { from: arbiter })
-    const result = await adMarket.registeredArbiter(arbiter)
+    await adMarket.registerSupply(supply, url)
+    await adMarket.updateSupplyUrl('bar', { from: supply })
+    const result = await adMarket.registeredSupply(supply)
     assert.equal(result[0], 'bar')
 
     const logs = await p(filter.get.bind(filter))()
     const logAddress = parseLogAddress(logs[1].topics[1])
-    assert.equal(logAddress, arbiter)
+    assert.equal(logAddress, supply)
   })
 
   it('openChannel', async () => {
     const demand = accounts[1]
     const supply = accounts[2]
-    const arbiter = accounts[3]
     const demandUrl = 'foo'
-    const arbiterUrl = 'bar'
     const channelId = solSha3(0)
     await adMarket.registerDemand(demand, demandUrl)
     await adMarket.registerSupply(supply)
-    await adMarket.registerArbiter(arbiter, arbiterUrl)
 
     const blockNumber = await p(web3.eth.getBlockNumber.bind(web3.eth))()
     const channelTimeout = parseBN((await p(adMarket.channelTimeout)())[0])
     const expiration = blockNumber + channelTimeout + 1
 
-    await adMarket.openChannel(supply, arbiter, { from: demand })
+    await adMarket.openChannel(supply, { from: demand })
 
     const channel = parseChannel(await adMarket.getChannel(channelId))
 
@@ -181,7 +152,6 @@ describe('AdMarket', async () => {
     assert.equal(channel.channelId, channelId)
     assert.equal(channel.demand, demand)
     assert.equal(channel.supply, supply)
-    assert.equal(channel.arbiter, arbiter)
     assert.equal(parseInt(channel.root, 16), 0)
     assert.equal(channel.state, 0)
     assert.equal(channel.expiration, expiration)
@@ -192,14 +162,11 @@ describe('AdMarket', async () => {
   it('proposeCheckpointChannel', async () => {
     const demand = accounts[1]
     const supply = accounts[2]
-    const arbiter = accounts[3]
     const demandUrl = 'foo'
-    const arbiterUrl = 'bar'
     const channelId = solSha3(0)
     await adMarket.registerDemand(demand, demandUrl)
     await adMarket.registerSupply(supply)
-    await adMarket.registerArbiter(arbiter, arbiterUrl)
-    await adMarket.openChannel(supply, arbiter, { from: demand })
+    await adMarket.openChannel(supply, { from: demand })
     const channel = parseChannel(await adMarket.getChannel(channelId))
 
     const blockNumber = await p(web3.eth.getBlockNumber.bind(web3.eth))()
@@ -223,13 +190,10 @@ describe('AdMarket', async () => {
   it('challengeCheckpointChannel', async () => {
     const demand = accounts[1]
     const supply = accounts[2]
-    const arbiter = accounts[3]
     const demandUrl = 'foo'
-    const arbiterUrl = 'bar'
     await adMarket.registerDemand(demand, demandUrl)
     await adMarket.registerSupply(supply)
-    await adMarket.registerArbiter(arbiter, arbiterUrl)
-    await adMarket.openChannel(supply, arbiter, { from: demand })
+    await adMarket.openChannel(supply, { from: demand })
     const channel = parseChannel(await adMarket.getChannel(channelId))
 
     // todo make channel
