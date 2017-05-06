@@ -17,7 +17,6 @@ const MNEMONIC = 'elegant ability lawn fiscal fossil general swarm trap bind req
 // port - testrpc port
 // noDeploy - if true, skip adMarket contract deployment
 // testRPCProvider - http connection string for console testprc instance
-// TODO figure out how to use the same accounts as active console testrpc
 export default async function (opts) {
   opts = opts || {}
   const mnemonic = opts.mnemonic || MNEMONIC
