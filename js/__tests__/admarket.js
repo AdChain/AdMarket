@@ -3,12 +3,12 @@ import p from 'es6-promisify'
 import Web3 from 'web3'
 import MerkleTree, { checkProof, merkleRoot } from 'merkle-tree-solidity'
 import { sha3 } from 'ethereumjs-util'
-import setup from './setup'
+import setup from '../setup'
 import { parseChannel, getFingerprint, getRoot, solSha3, parseLogAddress,
-  verifySignature, makeUpdate, verifyUpdate, parseBN } from './channel'
-import { wait } from './utils'
+  verifySignature, makeUpdate, verifyUpdate, parseBN } from '../channel'
+import { wait } from '../utils'
 
-// jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000
 
 const web3 = new Web3()
 
@@ -24,7 +24,7 @@ describe('AdMarket', async () => {
   let adMarket, eth, accounts, web3
   let snapshotId, filter
 
-  before(async () => {
+  beforeAll(async () => {
     let result = await setup({ testRPCProvider: 'http://localhost:8545'})
     adMarket = result.adMarket
     eth = result.eth
@@ -191,7 +191,7 @@ describe('AdMarket', async () => {
     assert.equal(updatedChannel.proposedRoot, proposedRoot)
   })
 
-  it.skip('challengeCheckpointChannel', async () => {
+  xit('challengeCheckpointChannel', async () => {
     const demand = accounts[1]
     const supply = accounts[2]
     const demandUrl = 'foo'
