@@ -6,6 +6,9 @@ pragma solidity ^0.4.7;
 // - demo parallel impression tracking system
 // - can inform clearing / settlement
 
+// Refactor to optionally renew the channel. By default, checkpointing will close.
+// Either party can checkpoint and opt to not renew, which closes the channel.
+
 import "ECVerify.sol";
 
 // Registers supply and demand, facilitates discovery, and manages the impression tracking state channels between them
@@ -210,6 +213,7 @@ contract AdMarket is ECVerify {
     bytes32 channelId,
     bytes32 challengeRoot,
     uint256 impressions,
+    uint256 index,
     bytes merkleProof,
     bytes signature
   ) {
@@ -506,6 +510,44 @@ contract AdMarket is ECVerify {
         } else {
             h = sha3(el, h);
         }
+    }
+
+    return h == root;
+  }
+
+  // TODO deploy as a library
+  function checkProofOrdered(
+    bytes proof, bytes32 root, bytes32 hash, uint256 index
+  ) constant returns (bool) {
+    // use the index to determine the node ordering
+    // index ranges 1 to n
+
+    bytes32 el;
+    bytes32 h = hash;
+    uint256 remaining;
+
+    for (uint256 j = 32; j <= proof.length; j += 32) {
+      assembly {
+        el := mload(add(proof, j))
+      }
+
+      // calculate remaining elements in proof
+      remaining = (proof.length - j + 32) / 32;
+
+      // we don't assume that the tree is padded to a power of 2
+      // if the index is odd then the proof will start with a hash at a higher
+      // layer, so we have to adjust the index to be the index at that layer
+      while (remaining > 0 && index % 2 == 1 && index > 2 ** remaining) {
+        index = uint(index) / 2 + 1;
+      }
+
+      if (index % 2 == 0) {
+        h = sha3(el, h);
+        index = index / 2;
+      } else {
+        h = sha3(h, el);
+        index = uint(index) / 2 + 1;
+      }
     }
 
     return h == root;

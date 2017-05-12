@@ -4,20 +4,10 @@ import Web3 from 'web3'
 import MerkleTree, { checkProof, merkleRoot } from 'merkle-tree-solidity'
 import { sha3 } from 'ethereumjs-util'
 import setup from './setup'
-import { parseChannel, getFingerprint, getRoot, solSha3, parseLogAddress,
-  verifySignature, makeUpdate, verifyUpdate, parseBN } from './channel'
+import { makeChannel, parseChannel, getFingerprint, getLeaves, getRoot, solSha3, parseLogAddress, verifySignature, makeUpdate, verifyUpdate, parseBN } from './channel'
 import { wait } from './utils'
 
-// jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000
-
 const web3 = new Web3()
-
-// goal - usable node.js middleware library for impression tracking
-// ACF will be registrar first and operate adMarket first
-// need to test out what auditing looks like
-// reference implementation. 2 weeks till completion.
-// offchain storage combines with this.
-// need to manage state machine between both nodes, interaction with adMarket
 
 describe('AdMarket', async () => {
 
@@ -196,98 +186,46 @@ describe('AdMarket', async () => {
     const supply = accounts[2]
     const demandUrl = 'foo'
     const supplyUrl = 'bar'
+    const channelId = solSha3(0)
     await adMarket.registerDemand(demand, demandUrl)
     await adMarket.registerSupply(supply, supplyUrl)
     await adMarket.openChannel(supply, { from: demand })
-    const channel = parseChannel(await adMarket.getChannel(channelId))
+    const channel = makeChannel(parseChannel(await adMarket.getChannel(channelId)))
 
-    // todo make channel
-
-    const input = {
+    const update = {
       impressionId: web3.sha3('bar'),
       impressionPrice: 2
     }
-  })
 
-  it('verifySignature', async () => {
-    const channel = {
-      contractId: '0x12345123451234512345',
-      channelId: web3.sha3('foo'),
-      demand: '0x11111111111111111111',
-      supply: '0x22222222222222222222',
-      impressionId: 'foo',
-      impressionPrice: 1,
-      impressions: 1000,
-      balance: 1000
-    }
-
-    channel.root = getRoot(channel, web3.sha3('foo'))
-
-    const fingerprint = getFingerprint(channel)
-    const sig = await p(web3.eth.sign)(accounts[0], fingerprint)
-    assert.ok(verifySignature(channel, sig, accounts[0]))
-  })
-})
-
-  // TODO test Join edge cases
-
-  /*
-  it('checkpoint', async () => {
-    await adMarket.open()
-
-    await adMarket.join(1, {
-      from: accounts[1],
-      value: 1000
-    })
-
-    let state = parseChannel(await adMarket.getChannel(1))
-    state.balances = [1, 999]
-    state.sequenceNumber += 1
-
-    const data = 'hello world'
-
-    // TODO need a better merkling strategy
-    await p(trie.put.bind(trie))(0, state.root)
-    await p(trie.put.bind(trie))(1, data)
-
-    state.root = '0x'+trie.root.toString('hex')
-
-    const fingerprint = getFingerprint(state)
-
-    const sig0 = await p(web3.eth.sign)(accounts[0], fingerprint)
-    const sig1 = await p(web3.eth.sign)(accounts[1], fingerprint)
-
-    await adMarket.checkpoint(
-      state.channelId,
-      state.participants,
-      state.balances,
-      state.root,
-      state.sequenceNumber,
-      sig0,
-      sig1
+    const updatedChannel = makeUpdate(channel, update)
+    const fingerprint = getFingerprint(updatedChannel)
+    const sig = await p(web3.eth.sign)(demand, fingerprint)
+    await adMarket.proposeCheckpointChannel(
+      channelId, proposedRoot, sig, { from: demand }
     )
 
-    const saved = parseChannel(await adMarket.getChannel(1))
+    const proposedCheckpointChannel = parseChannel(await adMarket.getChannel(channelId))
+    assert.equal(proposedCheckpointChannel.proposedRoot, updatedChanne.root)
 
-    assert.equal(saved.balances[0], state.balances[0])
-    assert.equal(saved.balances[1], state.balances[1])
-    assert.equal(saved.root, state.root)
-    assert.equal(saved.sequenceNumber, state.sequenceNumber)
+    const update2 = {
+      impressionId: web3.sha3('bar'),
+      impressionPrice: 2
+    }
+
+    const updatedChannel2 = makeUpdate(updatedChannel, update2)
+    const fingerprint2 = getFingerprint(updatedChannel2)
+    const sig2 = await p(web3.eth.sign)(demand, fingerprint2)
+
+    const leaves = getLeaves(updatedChannel2, updatedChannel2.prevRoot)
+    const impressionsLeaf = leaves[2]
+    const tree = MerkleTree(leaves, true)
+    const proof = tree.getProof(impressionsLeaf)
+
+    await adMarket.challengeCheckpointChannel(
+      channelId, updatedChannel2.root, 2, proof, sig2
+    )
+    // generate merkle proof for impressions
+
   })
-  */
 
-function makeString (char, length) {
-  let string = ''
-  for (let i = 0; i < length; i++) {
-    string += char
-  }
-  return string
-}
-
-function range (max) {
-  const arr = []
-  for (let i = 0; i < max; i++) {
-    arr.push(i + 1)
-  }
-  return arr
-}
+})

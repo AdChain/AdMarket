@@ -8,6 +8,9 @@ import { parseChannel, getFingerprint, getRoot, solSha3, parseLogAddress,
   verifySignature, makeUpdate, verifyUpdate, parseBN } from './channel'
 import { wait } from './utils'
 
+const web3 = new Web3()
+const accounts = web3.eth.accounts
+
 describe('channel', async () => {
   it('getRoot', () => {
     const channel = {
@@ -29,6 +32,24 @@ describe('channel', async () => {
     assert.equal(root, getRoot(channel, channel.root))
   })
 
+  it('verifySignature', async () => {
+    const channel = {
+      contractId: '0x12345123451234512345',
+      channelId: web3.sha3('foo'),
+      demand: '0x11111111111111111111',
+      supply: '0x22222222222222222222',
+      impressionId: 'foo',
+      impressionPrice: 1,
+      impressions: 1000,
+      balance: 1000
+    }
+
+    channel.root = getRoot(channel, web3.sha3('foo'))
+
+    const fingerprint = getFingerprint(channel)
+    const sig = await p(web3.eth.sign)(accounts[0], fingerprint)
+    assert.ok(verifySignature(channel, sig, accounts[0]))
+  })
 
   it('makeUpdate', () => {
     const channel = {

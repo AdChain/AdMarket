@@ -1,9 +1,8 @@
-import p from 'es6-promisify'
 import leftPad from 'left-pad'
 import Web3 from 'web3'
 import ethUtils from 'ethereumjs-util'
-import MerkleTree, { checkProof, merkleRoot } from 'merkle-tree-solidity'
-import { List, Map } from 'immutable'
+import { merkleRoot } from 'merkle-tree-solidity'
+import { Map } from 'immutable'
 
 const web3 = new Web3()
 const sha3 = ethUtils.sha3
@@ -13,7 +12,7 @@ const sha3 = ethUtils.sha3
 // This server is intended to run on its own for a long period.
 // private key can be in memory, part of env (typed in to start server) or
 // file.
-const privKey = new Buffer('e331b6d69882b4cb4ea581d88e0b604039a3de5967688d3dcffdd2270c0fd109', 'hex')
+const privKey = Buffer.alloc(32, 'e331b6d69882b4cb4ea581d88e0b604039a3de5967688d3dcffdd2270c0fd109', 'hex')
 
 // TODO separate util functions
 // channel specific
@@ -33,11 +32,10 @@ const makeChannel = (channelObj, impressionObj) => {
 }
 
 const sign = (msgHash, privKey) => {
-  if (typeof msgHash === 'string' && msgHash.slice(0, 2) == '0x') {
-    msgHash = Buffer(msgHash.slice(2), 'hex')
+  if (typeof msgHash === 'string' && msgHash.slice(0, 2) === '0x') {
+    msgHash = Buffer.alloc(32, msgHash.slice(2), 'hex')
   }
   const sig = ethUtils.ecsign(msgHash, privKey)
-  const v = sig.v
   return `0x${sig.r.toString('hex')}${sig.s.toString('hex')}${sig.v.toString(16)}`
 }
 
@@ -59,19 +57,23 @@ const getFingerprint = (channel) => {
   )
 }
 
-const getRoot = (channel, prevRoot) => {
-  return '0x' + merkleRoot([
+const getLeaves = (channel, prevRoot) => {
+  return [
     `impId:${channel.impressionId}`,
     `impPrice:${channel.price}`,
     `impCount:${channel.impressions}`,
     `balance:${channel.balance}`,
     `prevRoot:${prevRoot}`
-  ].map(e => sha3(e))).toString('hex')
+  ].map(e => sha3(e))
+}
+
+const getRoot = (channel, prevRoot) => {
+  return '0x' + merkleRoot(getLeaves(channel, prevRoot)).toString('hex')
 }
 
 const verifySignature = (channel, sig, address) => {
   const fingerprint = getFingerprint(channel)
-  return ecrecover(fingerprint, sig) == address
+  return ecrecover(fingerprint, sig) === address
 }
 
 // TODO make a real implementation of solSha3 in JS which captures all
@@ -122,13 +124,13 @@ const makeUpdate = (channel, update, doSign) => {
 // I have to think through state and storage now.
 
 const verifyUpdate = (channel, update) => {
-  return channel.get('contractId') == update.contractId &&
-      channel.get('channelId') == update.channelId &&
-      channel.get('demand') == update.demand &&
-      channel.get('supply') == update.supply &&
-      channel.get('impressions') == (update.impressions - 1) &&
-      channel.get('balance') == (update.balance - update.price) &&
-      update.root == getRoot(update, channel.get('root'))
+  return channel.get('contractId') === update.contractId &&
+      channel.get('channelId') === update.channelId &&
+      channel.get('demand') === update.demand &&
+      channel.get('supply') === update.supply &&
+      channel.get('impressions') === (update.impressions - 1) &&
+      channel.get('balance') === (update.balance - update.price) &&
+      update.root === getRoot(update, channel.get('root'))
 }
 
 // converts a 0x[10 0's][address] -> 0x[address]
@@ -141,12 +143,6 @@ const parseBN = (bigNumber) => {
   return +bigNumber.toString()
 }
 
-const sum = (arr) => {
-  return arr.reduce((acc, el) => {
-    acc += el
-  })
-}
-
 const ecrecover = (msg, sig) => {
   const r = ethUtils.toBuffer(sig.slice(0, 66))
   const s = ethUtils.toBuffer('0x' + sig.slice(66, 130))
@@ -156,7 +152,7 @@ const ecrecover = (msg, sig) => {
   return '0x' + ethUtils.pubToAddress(pub).toString('hex')
 }
 
-export { parseChannel, getFingerprint, getRoot, solSha3, parseLogAddress,
+export { parseChannel, getFingerprint, getLeaves, getRoot, solSha3, parseLogAddress,
   verifySignature, makeUpdate, verifyUpdate, parseBN, makeChannel, sign, ecrecover }
 
 /*
@@ -171,11 +167,11 @@ function isValidState(state) {
 }
 
 function isValidBytes32(bytes32) {
-  return Buffer(bytes32.slice(2), 'hex').length == 32
+  return Buffer(bytes32.slice(2), 'hex').length === 32
 }
 
 function isValidAddress(address) {
-  return typeof address == 'string' && address.length == '22' &&
-    address.slice(0, 2) == '0x' && Buffer(address.slice(2), 'hex').length == 20
+  return typeof address === 'string' && address.length === '22' &&
+    address.slice(0, 2) === '0x' && Buffer(address.slice(2), 'hex').length === 20
 }
 */
