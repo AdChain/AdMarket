@@ -151,6 +151,8 @@ contract AdMarket is ECVerify {
     if (!isRegisteredSupply(supply)) throw;
 
     // Check that we don't already have a channel open with the supply
+    // TODO with enough channel partners, this check will always run out of gas
+    // This will limit the number of channels any party can have
     address[] storage partners = channelPartners[demand];
     for (uint256 i = 0; i < partners.length; i++) {
       if (partners[i] == supply) throw;
@@ -179,11 +181,11 @@ contract AdMarket is ECVerify {
   // Checkpointing gives us the ability to have long-lived channels without downtime.
   // The channel participants can elect to renew the channel during a checkpoint.
   // If a channel is open and also has a challengeTimeout, that challengeTimeout is interpreted as a checkpoint challenge period.
-  // -- keep it open
   function proposeCheckpointChannel(
     bytes32 channelId,
     bytes32 proposedRoot,
-    bytes signature
+    bytes signature,
+    bool renew
   ) {
     Channel channel = channels[channelId];
 
@@ -204,11 +206,42 @@ contract AdMarket is ECVerify {
     // Check the signature on the state
     if (!ecverify(fingerprint, signature, channel.demand)) throw;
 
-    channel.state = ChannelState.Checkpointing;
+    // renew the channel, keeping it open at the end of the checkpoint
+    if (renew) {
+      channel.state = ChannelState.Checkpointing;
+
+    // close the channel at the end of the checkpoint process
+    } else {
+      channel.state = ChannelState.Closing;
+    }
+
     channel.challengeTimeout = block.number + challengePeriod;
     channel.proposedRoot = proposedRoot;
   }
 
+  // Either supply or demand can choose to not renew and instead close a channel
+  // at any point during the checkpointing process.
+  // The checkpointing process would continue in the same exact way, but it would
+  // close upon completion instead of remaining open
+  function closeChannel(
+    bytes32 channelId
+  ) {
+    Channel channel = channels[channelId];
+
+    // Check that msg.sender is either demand or supply
+    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
+
+    // Check that the channel is open
+    if (!(channel.state == ChannelState.Checkpointing)) throw;
+
+    channel.state = ChannelState.Closing;
+  }
+
+  // Either supply or demand can challenge a checkpointing channel before the challengeTimeout period ends
+  // They supply a different merkleRoot -- the challenge root -- which has more impressions.
+  // They also supply the proof for this impression count and the Demand's signature on it.
+  // This resets the challengeTimeout giving the counterparty a chance to accept this challenge.
+  // To accept the challenge, the counterparty must prove that the original checkpointed root has more impressions
   function challengeCheckpointChannel(
     bytes32 channelId,
     bytes32 challengeRoot,
@@ -222,8 +255,8 @@ contract AdMarket is ECVerify {
     // Check that msg.sender is either demand or supply
     if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
 
-    // Check that the channel is checkpointing
-    if (channel.state != ChannelState.Checkpointing) throw;
+    // Check that the channel is checkpointing or closing
+    if (channel.state != ChannelState.Checkpointing && channel.state != ChannelState.Closing) throw;
 
     // Check that the challenge period has not expired
     if (channel.challengeTimeout < block.number) throw;
@@ -240,20 +273,30 @@ contract AdMarket is ECVerify {
     if (!ecverify(fingerprint, signature, channel.demand)) throw;
 
     // Check the merkle proof for the impressions and challengeRoot
-    if (!(checkProof(merkleProof, challengeRoot, sha3(impressions)))) throw;
+    if (!(checkProofOrdered(merkleProof, challengeRoot, sha3(impressions), index))) throw;
 
     challenges[channelId] = Challenge(
       challengeRoot,
       impressions
     );
 
-    // Extend the challenge timeout
+    // Extend the challenge timeout, giving the counterparty additional time to respond
     channel.challengeTimeout = block.number + challengePeriod;
   }
 
+  // Either the demand or supply can accept a checkpoint challenge before the challengeTimeout ends.
+  // They must provide proof that the impressions in the original checkpoint are greater than
+  // in the checkpoint challenge.
+  // If they succeed, then the channel checkpointing process immediately ends, and the channel
+  // state is finalized with the original state.
+  // Otherwise, the channel checkpointing process will continue until the challenge period expires
+  // and the state is finalized by the checkPointChannel function
+  // If the participants intend to renew, the channel will stay open and its expiration block will reset.
+  // Otherwise the channel will close.
   function acceptChallengeCheckpointChannel(
     bytes32 channelId,
     uint256 impressions,
+    uint256 index,
     bytes merkleProof
   ) {
     Channel channel = channels[channelId];
@@ -261,10 +304,10 @@ contract AdMarket is ECVerify {
     // Check that msg.sender is either demand or supply
     if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
 
-    // Check that the channel is checkpointing
-    if (channel.state != ChannelState.Checkpointing) throw;
+    // Check that the channel is checkpointing or closing
+    if (channel.state != ChannelState.Checkpointing && channel.state != ChannelState.Closing) throw;
 
-    // Check that the challenge period has not expired
+    // Check that the challenge period is not over
     if (channel.challengeTimeout < block.number) throw;
 
     Challenge challenge = challenges[channelId];
@@ -276,23 +319,38 @@ contract AdMarket is ECVerify {
     if (challenge.impressions > impressions) throw;
 
     // Check the merkle proof for the impressions and proposedRoot
-    if (!(checkProof(merkleProof, channel.proposedRoot, sha3(impressions)))) throw;
+    if (!(checkProofOrdered(merkleProof, channel.proposedRoot, sha3(impressions), index))) throw;
 
+    // renew channel
+    if (channel.state == ChannelState.Checkpointing) {
+      channel.expiration = block.number + channelTimeout;
+      channel.state = ChannelState.Open;
+
+    // close channel
+    } else {
+      channel.state = ChannelState.Closed;
+    }
+
+    // even if the channel is closed, we want to record the final state root
     channel.root = channel.proposedRoot;
     channel.proposedRoot = 0;
-    channel.state = ChannelState.Open;
     channel.challengeTimeout = 0;
     delete challenges[channelId];
   }
 
+  // Either the demand or supply can finalize the checkpoint after the challengeTimeout ends.
+  // If a valid challenge was presented and not accepted, it wins and becomes the final state.
+  // If no challenge was presented, the originally proposed state root is accepted.
+  // If the participants intend to renew, the channel will stay open and its expiration block will reset.
+  // Otherwise the channel will close.
   function checkpointChannel(bytes32 channelId) {
     Channel channel = channels[channelId];
 
     // Check that msg.sender is either demand or supply
     if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
 
-    // Check that the channel is checkpointing
-    if (!(channel.state == ChannelState.Checkpointing)) throw;
+    // Check that the channel is checkpointing or closing
+    if (channel.state != ChannelState.Checkpointing && channel.state != ChannelState.Closing) throw;
 
     // Check that the challenge period is over
     if (!(channel.challengeTimeout < block.number)) throw;
@@ -301,151 +359,24 @@ contract AdMarket is ECVerify {
 
     // If there was an unanswered challenge, it wins. Otherwise the proposedRoot is accepted.
     // note: challenge.impressions can only be > 0 if there was an unanswered challenge.
+    // if the challenge was successfully answered, challenge.impressions would have been deleted
     if (challenge.impressions > 0) {
       channel.root = challenge.challengeRoot;
     } else {
       channel.root = channel.proposedRoot;
     }
 
-    channel.proposedRoot = 0;
-    channel.state = ChannelState.Open;
-    channel.challengeTimeout = 0;
-    delete challenges[channelId];
-  }
+    // renew channel
+    if (channel.state == ChannelState.Checkpointing) {
+      channel.expiration = block.number + channelTimeout;
+      channel.state = ChannelState.Open;
 
-  function proposeCloseChannel(
-    bytes32 channelId,
-    bytes32 proposedRoot,
-    bytes signature
-  ) {
-    Channel channel = channels[channelId];
-
-    // Check that msg.sender is either demand or supply
-    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
-
-    // Check that channel is not already closing or closed
-    if ((channel.state == ChannelState.Closing || channel.state == ChannelState.Closed)) throw;
-
-    // Override any existing challenges
-    if (channel.state == ChannelState.Checkpointing && challenges[channelId].impressions > 0) {
-      delete challenges[channelId];
-    }
-
-    bytes32 fingerprint = sha3(
-      address(this),
-      channelId,
-      channel.demand,
-      channel.supply,
-      proposedRoot
-    );
-
-    // Check the signature on the state
-    if (!ecverify(fingerprint, signature, channel.demand)) throw;
-
-    channel.state = ChannelState.Closing;
-    channel.challengeTimeout = block.number + challengePeriod;
-    channel.proposedRoot = proposedRoot;
-  }
-
-  function challengeCloseChannel(
-    bytes32 channelId,
-    bytes32 challengeRoot,
-    uint256 impressions,
-    bytes merkleProof,
-    bytes signature
-  ) {
-    Channel channel = channels[channelId];
-
-    // Check that msg.sender is either demand or supply
-    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
-
-    // Check that the channel is closing
-    if (!(channel.state == ChannelState.Closing)) throw;
-
-    // Check that the challenge period has not expired
-    if (!(channel.challengeTimeout > block.number)) throw;
-
-    bytes32 fingerprint = sha3(
-      address(this),
-      channelId,
-      channel.demand,
-      channel.supply,
-      challengeRoot
-    );
-
-    // Check the signature on the state
-    if (!ecverify(fingerprint, signature, channel.demand)) throw;
-
-    // Check the merkle proof for the impressions and challengeRoot
-    if (!(checkProof(merkleProof, challengeRoot, sha3(impressions)))) throw;
-
-    challenges[channelId] = Challenge(
-      challengeRoot,
-      impressions
-    );
-
-    // Extend the challenge timeout
-    channel.challengeTimeout = block.number + challengePeriod;
-  }
-
-  function acceptChallengeCloseChannel(
-    bytes32 channelId,
-    uint256 impressions,
-    bytes merkleProof
-  ) {
-    Channel channel = channels[channelId];
-
-    // Check that msg.sender is either demand or supply
-    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
-
-    // Check that the channel is closing
-    if (!(channel.state == ChannelState.Closing)) throw;
-
-    // Check that the challenge period has not expired
-    if (!(channel.challengeTimeout > block.number)) throw;
-
-    Challenge challenge = challenges[channelId];
-
-    // Check that a challenge was presented
-    if (!(challenge.impressions > 0)) throw;
-
-    // Check that impressions is larger than in the challenge
-    if (challenge.impressions > impressions) throw;
-
-    // Check the merkle proof for the impressions and proposedRoot
-    if (!(checkProof(merkleProof, channel.proposedRoot, sha3(impressions)))) throw;
-
-    channel.root = channel.proposedRoot;
-    channel.proposedRoot = 0;
-    channel.state = ChannelState.Closed;
-    channel.challengeTimeout = 0;
-    delete challenges[channelId];
-  }
-
-  function closeChannel(bytes32 channelId) {
-    Channel channel = channels[channelId];
-
-    // Check that msg.sender is either demand or supply
-    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
-
-    // Check that the channel is checkpointing
-    if (!(channel.state == ChannelState.Closing)) throw;
-
-    // Check that the challenge period is over
-    if (!(channel.challengeTimeout < block.number)) throw;
-
-    Challenge challenge = challenges[channelId];
-
-    // If there was an unanswered challenge, it wins. Otherwise the proposedRoot is accepted.
-    // note: challenge.impressions can only be > 0 if there was an unanswered challenge.
-    if (challenge.impressions > 0) {
-      channel.root = challenge.challengeRoot;
+    // close channel
     } else {
-      channel.root = channel.proposedRoot;
+      channel.state = ChannelState.Closed;
     }
 
     channel.proposedRoot = 0;
-    channel.state = ChannelState.Closed;
     channel.challengeTimeout = 0;
     delete challenges[channelId];
   }
@@ -493,26 +424,6 @@ contract AdMarket is ECVerify {
       channel.challengeTimeout,
       channel.proposedRoot
     );
-  }
-
-  // TODO deploy as a library
-  function checkProof(bytes merkleProof, bytes32 root, bytes32 hash) constant returns (bool) {
-    bytes32 el;
-    bytes32 h = hash;
-
-    for (uint256 i = 32; i <= merkleProof.length; i += 32) {
-        assembly {
-            el := mload(add(merkleProof, i))
-        }
-
-        if (h < el) {
-            h = sha3(h, el);
-        } else {
-            h = sha3(el, h);
-        }
-    }
-
-    return h == root;
   }
 
   // TODO deploy as a library
