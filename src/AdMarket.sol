@@ -231,7 +231,7 @@ contract AdMarket is ECVerify {
     // Check that msg.sender is either demand or supply
     if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
 
-    // Check that the channel is open
+    // Check that the channel is checkpointing
     if (!(channel.state == ChannelState.Checkpointing)) throw;
 
     channel.state = ChannelState.Closing;
@@ -353,7 +353,8 @@ contract AdMarket is ECVerify {
     if (channel.state != ChannelState.Checkpointing && channel.state != ChannelState.Closing) throw;
 
     // Check that the challenge period is over
-    if (!(channel.challengeTimeout < block.number)) throw;
+    // TODO fix ERROR
+    if (channel.challengeTimeout > block.number) throw;
 
     Challenge challenge = challenges[channelId];
 

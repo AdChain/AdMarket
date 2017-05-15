@@ -25,9 +25,12 @@ export default async function (opts) {
   const noDeploy = opts.noDeploy
   const defaultAcct = opts.defaultAcct ? opts.defaultAcct : 0
 
-  const CHANNEL_TIMEOUT = 172800 // 30 days of 15s blocks on average
-  const CHALLENGE_PERIOD = 5760 // 1 day of 15s blocks on average
-  const OWNER_URL = 'foo.net'
+  // default: 30 days of 15s blocks on average
+  const channelTimeout =  opts.channelTimeout || 172800
+
+  // default: 1 day of 15s blocks on average
+  const challengePeriod = opts.challengePeriod || 5760
+  const ownerUrl = 'foo.net'
 
   // START TESTRPC PROVIDER
   let provider
@@ -74,7 +77,7 @@ export default async function (opts) {
 
   if (!noDeploy) {
     // DEPLOY THE ADMARKET CONTRACT
-    adMarketTxHash = await AdMarket.new(OWNER_URL, CHANNEL_TIMEOUT, CHALLENGE_PERIOD)
+    adMarketTxHash = await AdMarket.new(ownerUrl, channelTimeout, challengePeriod)
     await wait(1500)
     // USE THE ADDRESS FROM THE TX RECEIPT TO BUILD THE CONTRACT OBJECT
     adMarketReceipt = await eth.getTransactionReceipt(adMarketTxHash)
