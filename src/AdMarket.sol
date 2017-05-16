@@ -353,7 +353,6 @@ contract AdMarket is ECVerify {
     if (channel.state != ChannelState.Checkpointing && channel.state != ChannelState.Closing) throw;
 
     // Check that the challenge period is over
-    // TODO fix ERROR
     if (channel.challengeTimeout > block.number) throw;
 
     Challenge challenge = challenges[channelId];
