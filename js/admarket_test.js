@@ -438,5 +438,82 @@ describe('AdMarket', () => {
       assert.equal(finalChallenge.challengeRoot, 0)
       assert.equal(finalChallenge.impressions, 0)
     })
+
+    it('checkpointChannel -- after a valid challenge', async () => {
+      // TODO get rid of the unhandled promise rejection warning
+      // proposeCheckpoint with 1 impressions
+      // challengeCheckpoint with 2 impression
+      // acceptChallengeCheckpoint with 1 impression (fails)
+      // checkpointChannel with the challenge unanswered
+
+      const index = 3 // index of impressions # in the leaves array
+
+      // proposeCheckpoint with update1
+      const update1 = {
+        impressionId: web3.sha3('bar'),
+        price: 2
+      }
+      const updatedChannel1 = makeUpdate(makeChannel(channel), update1)
+      const root1 = updatedChannel1.get('root')
+      const fingerprint1 = getFingerprint(updatedChannel1)
+      const sig1 = await p(web3.eth.sign)(demand, fingerprint1)
+
+      await adMarket.proposeCheckpointChannel(
+        channelId, root1, sig1, true, { from: demand }
+      )
+
+      // challengeCheckpoint with update2
+      const update2 = {
+        impressionId: web3.sha3('bar'),
+        price: 3
+      }
+      const updatedChannel2 = makeUpdate(updatedChannel1, update2)
+      const root2 = updatedChannel2.get('root')
+      const fingerprint2 = getFingerprint(updatedChannel2)
+      const sig2 = await p(web3.eth.sign)(demand, fingerprint2)
+
+      const leaves2 = getLeaves(updatedChannel2, updatedChannel2.get('prevRoot'))
+      const impressionsLeaf2 = leaves2[2]
+      const tree2 = new MerkleTree(leaves2, true)
+      const proof2 = tree2.getProofOrdered(impressionsLeaf2, index, true)
+
+      await adMarket.challengeCheckpointChannel(
+        channelId, root2, 2, index, proof2, sig2, { from: supply }
+      )
+
+      // acceptChallenge with update1 (fails)
+      const leaves1 = getLeaves(updatedChannel1, updatedChannel1.get('prevRoot'))
+      const impressionsLeaf1 = leaves1[2]
+      const tree1 = new MerkleTree(leaves1, true)
+      const proof1 = tree1.getProofOrdered(impressionsLeaf1, index, true)
+
+      try {
+        await adMarket.acceptChallengeCheckpointChannel(
+          channelId, 2, index, proof1, { from: demand }
+        )
+      } catch (err) {
+        assert.equal(err.value.message, 'VM Exception while processing transaction: invalid opcode')
+        assert.equal(err.value.code, -32000)
+      }
+
+      await mineBlocks(CHALLENGE_PERIOD)
+
+      // checkpointChannel after challenge period expires
+      await adMarket.checkpointChannel(channelId, { from: supply })
+
+      const blockNumber = await p(web3.eth.getBlockNumber.bind(web3.eth))()
+      const expiration = blockNumber + CHANNEL_TIMEOUT
+
+      const finalChannel = parseChannel(await adMarket.getChannel(channelId))
+      const finalChallenge = parseChallenge(await adMarket.getChallenge(channelId))
+
+      assert.equal(finalChannel.state, 0)
+      assert.equal(finalChannel.challengeTimeout, 0)
+      assert.equal(finalChannel.expiration, expiration)
+      assert.equal(finalChannel.root, root2)
+      assert.equal(finalChannel.proposedRoot, 0)
+      assert.equal(finalChallenge.challengeRoot, 0)
+      assert.equal(finalChallenge.impressions, 0)
+    })
   })
 })

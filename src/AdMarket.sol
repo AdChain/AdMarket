@@ -383,7 +383,6 @@ contract AdMarket is ECVerify {
 
   // TODO
   function closeExpiredChannel() {}
-  function closeZeroStateChannel() {}
 
   function isEmptyString(string s) constant returns (bool) {
     return sha3(s) == emptyString;
