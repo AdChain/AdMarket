@@ -426,6 +426,17 @@ contract AdMarket is ECVerify {
     );
   }
 
+  function getChallenge(bytes32 id) constant returns (
+    bytes32 challengeRoot,
+    uint256 impressions
+  ) {
+    Challenge challenge = challenges[id];
+    return (
+      challenge.challengeRoot,
+      challenge.impressions
+    );
+  }
+
   // TODO deploy as a library
   function checkProofOrdered(
     bytes proof, bytes32 root, bytes32 hash, uint256 index

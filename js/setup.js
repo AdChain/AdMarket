@@ -62,7 +62,7 @@ export default async function (opts) {
   }
 
   const output = solc.compile({ sources: input }, 1)
-  if (output.errors) { throw new Error(output.errors) }
+  if (output.errors) { console.log(Error(output.errors)) }
 
   const abi = JSON.parse(output.contracts['AdMarket.sol:AdMarket'].interface)
   const bytecode = output.contracts['AdMarket.sol:AdMarket'].bytecode

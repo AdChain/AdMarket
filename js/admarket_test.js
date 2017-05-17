@@ -1,35 +1,13 @@
 import { assert } from 'chai'
 import p from 'es6-promisify'
 import Web3 from 'web3'
-import MerkleTree, { checkProof, merkleRoot } from 'merkle-tree-solidity'
+import MerkleTree, { checkProofOrdered, merkleRoot, getProof } from 'merkle-tree-solidity'
 import { sha3 } from 'ethereumjs-util'
 import setup from './setup'
-import { makeChannel, parseChannel, getFingerprint, getLeaves, getRoot, solSha3, parseLogAddress, verifySignature, makeUpdate, verifyUpdate, parseBN } from './channel'
+import { makeChannel, parseChannel, getFingerprint, getLeaves, getRoot, solSha3,
+  parseLogAddress, verifySignature, makeUpdate, verifyUpdate, parseBN, parseChallenge
+} from './channel'
 import { wait } from './utils'
-
-// I can do nested describes but the beforeEaches stack
-// I can just do the snapshotting as before and after within a describe
-// Describes:
-//  1. with contract instantiated, but fresh
-//  2. with channel open
-//  3. with proposed checkpoint
-//  etc...
-// For each of these I will do the setup, including taking the snapshot,
-// in the before block.
-// Then I do the
-//
-// Does evm_revert happen in the afterEach of the nested?
-// yes. to separate I have to nest the tests that only need the contract
-// deployed
-//
-// That means evm revert ONLY happens in the afterEach of the nested
-// This also means that further nesting does not happen
-//
-// We just play through more states in the before
-// the original before has to have its own snapshot
-// and we'll have to revert it in the after
-//
-// this allows only to continue working
 
 const web3 = new Web3()
 
@@ -38,8 +16,6 @@ describe('AdMarket', () => {
   let adMarket, eth, accounts, web3
   let filter
   let snapshots = []
-
-  let params = [] // collection of params from some tests
 
   let CHANNEL_TIMEOUT = 20
   let CHALLENGE_PERIOD = 10
@@ -309,7 +285,6 @@ describe('AdMarket', () => {
         channelId, proposedRoot, sig, true, { from: demand }
       )
 
-      // mine blocks until the challenge period expires
       await mineBlocks(CHALLENGE_PERIOD)
 
       await adMarket.checkpointChannel(channelId, { from: demand })
@@ -326,55 +301,76 @@ describe('AdMarket', () => {
       assert.equal(updatedChannel.proposedRoot, 0)
     })
 
-    it.skip('checkpointChannel -- close', async () => {
+    it('checkpointChannel -- close', async () => {
+      const proposedRoot = solSha3('wut')
+      channel.root = proposedRoot
+      const fingerprint = getFingerprint(channel)
+      const sig = await p(web3.eth.sign)(demand, fingerprint)
+      await adMarket.proposeCheckpointChannel(
+        channelId, proposedRoot, sig, false, { from: demand }
+      )
 
+      await mineBlocks(CHALLENGE_PERIOD)
+
+      await adMarket.checkpointChannel(channelId, { from: demand })
+
+      const blockNumber = await p(web3.eth.getBlockNumber.bind(web3.eth))()
+      const expiration = blockNumber + CHANNEL_TIMEOUT
+
+      const updatedChannel = parseChannel(await adMarket.getChannel(channelId))
+
+      assert.equal(updatedChannel.state, 3)
+      assert.equal(updatedChannel.challengeTimeout, 0)
+      assert.equal(updatedChannel.expiration, channel.expiration)
+      assert.equal(updatedChannel.root, proposedRoot)
+      assert.equal(updatedChannel.proposedRoot, 0)
     })
 
-    it.skip('challengeCheckpointChannel', async () => {
-      const demand = accounts[1]
-      const supply = accounts[2]
-      const demandUrl = 'foo'
-      const supplyUrl = 'bar'
-      const channelId = solSha3(0)
-      await adMarket.registerDemand(demand, demandUrl)
-      await adMarket.registerSupply(supply, supplyUrl)
-      await adMarket.openChannel(supply, { from: demand })
-      const channel = makeChannel(parseChannel(await adMarket.getChannel(channelId)))
-
+    it.only('challengeCheckpointChannel', async () => {
       const update = {
         impressionId: web3.sha3('bar'),
-        impressionPrice: 2
+        price: 2
       }
 
-      const updatedChannel = makeUpdate(channel, update)
+      const updatedChannel = makeUpdate(makeChannel(channel), update)
+      const proposedRoot = updatedChannel.get('root')
       const fingerprint = getFingerprint(updatedChannel)
       const sig = await p(web3.eth.sign)(demand, fingerprint)
       await adMarket.proposeCheckpointChannel(
-        channelId, proposedRoot, sig, { from: demand }
+        channelId, proposedRoot, sig, true, { from: demand }
       )
 
       const proposedCheckpointChannel = parseChannel(await adMarket.getChannel(channelId))
-      assert.equal(proposedCheckpointChannel.proposedRoot, updatedChanne.root)
+      assert.equal(proposedCheckpointChannel.proposedRoot, proposedRoot)
 
       const update2 = {
         impressionId: web3.sha3('bar'),
-        impressionPrice: 2
+        price: 2
       }
 
       const updatedChannel2 = makeUpdate(updatedChannel, update2)
       const fingerprint2 = getFingerprint(updatedChannel2)
       const sig2 = await p(web3.eth.sign)(demand, fingerprint2)
 
-      const leaves = getLeaves(updatedChannel2, updatedChannel2.prevRoot)
+      const root = updatedChannel2.get('root')
+      const leaves = getLeaves(updatedChannel2, updatedChannel2.get('prevRoot'))
       const impressionsLeaf = leaves[2]
-      const tree = MerkleTree(leaves, true)
-      const proof = tree.getProof(impressionsLeaf)
+      const tree = new MerkleTree(leaves, true)
+      const index = 3
+      const proof = tree.getProofOrdered(impressionsLeaf, index, true)
 
       await adMarket.challengeCheckpointChannel(
-        channelId, updatedChannel2.root, 2, proof, sig2
+        channelId, root, 2, 3, proof, sig2, { from: supply }
       )
-      // generate merkle proof for impressions
 
+      const blockNumber = await p(web3.eth.getBlockNumber.bind(web3.eth))()
+      const challengeTimeout = blockNumber + CHALLENGE_PERIOD
+
+      const challenge = parseChallenge(await adMarket.getChallenge(channelId))
+      const challengedChannel = parseChannel(await adMarket.getChannel(channelId))
+      assert.equal(challenge.challengeRoot, root)
+      assert.equal(challenge.impressions, 2)
+      assert.equal(challengedChannel.challengeTimeout, challengeTimeout)
     })
   })
 })

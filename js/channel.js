@@ -47,7 +47,16 @@ const parseChannel = (channel) => {
   })
 }
 
+const parseChallenge = (challenge) => {
+  return Object.assign({}, challenge, {
+    impressions: +challenge.impressions.toString()
+  })
+}
+
 const getFingerprint = (channel) => {
+  if (typeof channel.toJS === 'function') {
+    channel = channel.toJS()
+  }
   return solSha3(
     channel.contractId,
     channel.channelId,
@@ -57,18 +66,28 @@ const getFingerprint = (channel) => {
   )
 }
 
+const hashLeaf = (leaf) => {
+  if (typeof leaf === 'number') {
+    return Buffer.alloc(32, solSha3(leaf).slice(2), 'hex')
+  }
+  return sha3(leaf)
+}
+
 const getLeaves = (channel, prevRoot) => {
+  if (typeof channel.toJS === 'function') {
+    channel = channel.toJS()
+  }
   return [
-    `impId:${channel.impressionId}`,
-    `impPrice:${channel.price}`,
-    `impCount:${channel.impressions}`,
-    `balance:${channel.balance}`,
-    `prevRoot:${prevRoot}`
-  ].map(e => sha3(e))
+    channel.impressionId,
+    channel.price,
+    channel.impressions,
+    channel.balance,
+    prevRoot
+  ].map(hashLeaf)
 }
 
 const getRoot = (channel, prevRoot) => {
-  return '0x' + merkleRoot(getLeaves(channel, prevRoot)).toString('hex')
+  return '0x' + merkleRoot(getLeaves(channel, prevRoot), true).toString('hex')
 }
 
 const verifySignature = (channel, sig, address) => {
@@ -153,7 +172,9 @@ const ecrecover = (msg, sig) => {
 }
 
 export { parseChannel, getFingerprint, getLeaves, getRoot, solSha3, parseLogAddress,
-  verifySignature, makeUpdate, verifyUpdate, parseBN, makeChannel, sign, ecrecover }
+  verifySignature, makeUpdate, verifyUpdate, parseBN, makeChannel, sign, ecrecover,
+  parseChallenge
+}
 
 /*
  * Punt on validation - data coming from blockchain is assumed to be valid
