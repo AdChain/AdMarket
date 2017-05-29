@@ -223,9 +223,7 @@ contract AdMarket is ECVerify {
   // at any point during the checkpointing process.
   // The checkpointing process would continue in the same exact way, but it would
   // close upon completion instead of remaining open
-  function closeChannel(
-    bytes32 channelId
-  ) {
+  function closeChannel(bytes32 channelId) {
     Channel channel = channels[channelId];
 
     // Check that msg.sender is either demand or supply
@@ -242,14 +240,14 @@ contract AdMarket is ECVerify {
   // They also supply the proof for this impression count and the Demand's signature on it.
   // This resets the challengeTimeout giving the counterparty a chance to accept this challenge.
   // To accept the challenge, the counterparty must prove that the original checkpointed root has more impressions
-  function challengeCheckpointChannel(
-    bytes32 channelId,
-    bytes32 challengeRoot,
-    uint256 impressions,
-    uint256 index,
-    bytes merkleProof,
-    bytes signature
-  ) {
+function challengeCheckpointChannel(
+  bytes32 channelId,
+  bytes32 challengeRoot,
+  uint256 impressions,
+  uint256 index,
+  bytes merkleProof,
+  bytes signature
+) {
     Channel channel = channels[channelId];
 
     // Check that msg.sender is either demand or supply
