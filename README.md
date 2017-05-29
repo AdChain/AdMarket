@@ -2,9 +2,9 @@
 
 ## Tests
 
-At the moment, only the contract tests have been written. To run the tests: 
+At the moment, only the contract tests have been written. To run the tests:
 
-First start testrpc in one terminal. 
+First start testrpc in one terminal.
 
 ```bash
 npm run testrpc
@@ -63,15 +63,15 @@ as starting points.
 
 The advertiser or their agent (demand) and the publisher or their agent (supply)
 will maintain a state channel for the duration of their business relationship,
-periodically checkpointing the channel state onchain. All data can be kept private between the parties, even during checkpointing, unless there is a dispute. 
+periodically checkpointing the channel state onchain. All data can be kept private between the parties, even during checkpointing, unless there is a dispute.
 
-This state channel tracks the impressions between demand and supply and can be thought of as an immutable "impression ledger". In response to browser ad impression events, the demand  will send a signed state channel update over HTTP to the supply, acknowledging the impression. Both supply and demand store these channel updates offchain, in traditional databases such as PostgreSQL or MongoDB. 
+This state channel tracks the impressions between demand and supply and can be thought of as an immutable "impression ledger". In response to browser ad impression events, the demand  will send a signed state channel update over HTTP to the supply, acknowledging the impression. Both supply and demand store these channel updates offchain, in traditional databases such as PostgreSQL or MongoDB.
 
-The AdMarket operator plays a role as a passive observer and a tie-breaker in the event the supply witnesses an impression event the demand fails to acknowledge. 
+The AdMarket operator plays a role as a passive observer and a tie-breaker in the event the supply witnesses an impression event the demand fails to acknowledge.
 
 #### Registration
 
-Both the demand and supply must be registered with the AdMarket in order to open channels. The AdMarket contract maintains a mapping of Ethereum addresses to url strings for registered members. The url strings point to adservers which will handle state channel messages. 
+Both the demand and supply must be registered with the AdMarket in order to open channels. The AdMarket contract maintains a mapping of Ethereum addresses to url strings for registered members. The url strings point to adservers which will handle state channel messages.
 
 ```
 mapping (address => string) public registeredDemand;
@@ -84,13 +84,13 @@ participants.
 To register demand or supply, the AdMarket owner must provide their Ethereum address as well as a url string which points to their adserver which will handle offchain HTTP state channel messages.
 
 ```
-function registerDemand(address demand, string url) only_owner {...} 
+function registerDemand(address demand, string url) only_owner {...}
 function registerSupply(address supply, string url) only_owner {...}
 
 function deregisterDemand(address demand) only_owner {...}
 function deregisterSupply(address supply) only_owner {...}
-```  
- 
+```
+
 Once registration is complete, the supply and demand may update their own
 adserver urls.
 
@@ -105,7 +105,7 @@ In the future, registration functionality will be removed in favor of interfacin
 
 #### Opening the Channel
 
-In this system, only the demand can open the channel, which it does by providing the address of a registered supply which it doesn't already have an open channel with. 
+In this system, only the demand can open the channel, which it does by providing the address of a registered supply which it doesn't already have an open channel with.
 
 ```
 function openChannel(address supply) only_registered_demand {...}
@@ -115,7 +115,7 @@ At the moment, the channel is only used for accounting purposes and payments are
 
 #### State Updates
 
-Once a channel is open, whenever the demand receives an impression event from a user's browser, it will generate a state channel update acknowledging the impression, save it, sign it, and send it to the supply. 
+Once a channel is open, whenever the demand receives an impression event from a user's browser, it will generate a state channel update acknowledging the impression, save it, sign it, and send it to the supply.
 
 The **signed** portions of state channel message include the following fields:
 
@@ -140,7 +140,7 @@ Upon receiving the state channel message, the supply will verify  it and save it
 
 #### Channel Data
 
-The channel data in the AdMarket contract is set once when the channel is opened and periodically as the channel is checkpointed. Only the `root` is actually updated; the metadata serves to guide the channel through the proper checkpointing flow. 
+The channel data in the AdMarket contract is set once when the channel is opened and periodically as the channel is checkpointed. Only the `root` is actually updated; the metadata serves to guide the channel through the proper checkpointing flow.
 
 ```
 struct Channel {
@@ -153,8 +153,8 @@ struct Channel {
 
   // Metadata (not included in offchain state updates)
   ChannelState state;
-  uint256 expiration; 
-  uint256 challengeTimeout; 
+  uint256 expiration;
+  uint256 challengeTimeout;
   bytes32 proposedRoot;
 }
 
@@ -167,13 +167,13 @@ enum ChannelState { Open, Checkpointing, Closing, Closed }
 
 #### Checkpointing the Channel
 
-Periodically, the demand or supply can checkpoint the channel on the AdMarket contract, and optionally renew the channel. 
+Periodically, the demand or supply can checkpoint the channel on the AdMarket contract, and optionally renew the channel.
 
 ##### Propose Checkpoint
 
-Checkpointing the channel happens in a few steps. The first step is to propose a checkpoint for the most recent signed state, indicated by its root. As mentioned above, the root acts as a unique fingerprint for the entire historical record of impressions for this channel, and checkpointing it amounts to a globally visible commitment to that record. 
+Checkpointing the channel happens in a few steps. The first step is to propose a checkpoint for the most recent signed state, indicated by its root. As mentioned above, the root acts as a unique fingerprint for the entire historical record of impressions for this channel, and checkpointing it amounts to a globally visible commitment to that record.
 
-The signature provided must be from the demand and is verified in the contract method. 
+The signature provided must be from the demand and is verified in the contract method.
 
 If `renew` is set to `true`, the channel will remain open once the checkpoint is completed.
 
@@ -203,7 +203,7 @@ function challengeCheckpointChannel(
 
 ##### Accept Challenge
 
-If a challenge was issued, the challenge period is reset, providing time to answer the challenge. To accept the challenge, the party must provide an impressions count which can be proven to be included in the original `proposedRoot`, and is higher than the impressions in the challenge. Should this be the case, the checkpointing immediately completes and the original `proposedRoot` is recorded. 	
+If a challenge was issued, the challenge period is reset, providing time to answer the challenge. To accept the challenge, the party must provide an impressions count which can be proven to be included in the original `proposedRoot`, and is higher than the impressions in the challenge. Should this be the case, the checkpointing immediately completes and the original `proposedRoot` is recorded.
 
 ```
 function acceptChallengeCheckpointChannel(
@@ -216,21 +216,21 @@ function acceptChallengeCheckpointChannel(
 
 ##### Checkpoint
 
-If there is no valid challenge, then after the challenge period expires either party can finalize the proposed checkpoint, and `root` will be set to `proposedRoot`. 
+If there is no valid challenge, then after the challenge period expires either party can finalize the proposed checkpoint, and `root` will be set to `proposedRoot`.
 
 Alternatively, if there is a valid challenge which is not accepted within the (reset) challenge period, then calling the `checkpointChannel` method will set `root` to `challengeRoot`.
 
 ```
-function checkpointChannel(bytes32 channelId) {...}:w
+function checkpointChannel(bytes32 channelId) {...}
 ```
 
 
 
 #### Closing the Channel
 
-Closing a channel uses the same methods and follows the same flow as checkpointing, except with `renew` set to `false` from the beginning. 
+Closing a channel uses the same methods and follows the same flow as checkpointing, except with `renew` set to `false` from the beginning.
 
-If checkpointing was initiated with `renew` set to `true`, either party can still decide to close the channel using the `closeChannel` method. This can be done at any time during the checkpointing process, and sets `renew` to `false`. 
+If checkpointing was initiated with `renew` set to `true`, either party can still decide to close the channel using the `closeChannel` method. This can be done at any time during the checkpointing process, and sets `renew` to `false`.
 
 ```
 function closeChannel(bytes32 channelId) {...}
