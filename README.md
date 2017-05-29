@@ -40,31 +40,19 @@ applications. This documentation assumes familiarity with state channels. To
 review, check out the following links:
 
 Martin Koeppelmann (Oct. 2015, blog) - [How offchain trading will work](http://forum.groupgnosis.com/t/how-offchain-trading-will-work/63)
-
 Robert Mccone (Oct. 2015, blog) - [Ethereum Lightning Network and Beyond](http://www.arcturnus.com/ethereum-lightning-network-and-beyond/)
-
 Jeff Coleman (Nov. 2015, blog) - [State Channels](http://www.jeffcoleman.ca/state-channels/) (see also: [discussion on /r/ethereum](https://www.reddit.com/r/ethereum/comments/3tcu82/state_channels_an_explanation/))
-
 Heiko Hees (Dec. 2015, talk) - [Raiden: Scaling Out With Offchain State
 Networks](https://www.youtube.com/watch?v=h791zjvf3uQ)
-
 Jeff Coleman (Dec. 2015, interview) - [Epicenter Bitcoin: State Networks](https://www.youtube.com/watch?v=v0ZJDsRYnbA)
-
 Jehan Tremback (Dec. 2015, blog) - [Universal Payment Channels](http://altheamesh.com/blog/universal-payment-channels/)
-
 Martin Koeppelmann (Jan. 2016, slides) - [Scalability via State Channels](http://de.slideshare.net/MartinKppelmann/state-channels-and-scalibility)
-
 Vitalik Buterin (Jun. 2016, paper)  - [Ethereum: Platform Review (page 30)](http://static1.squarespace.com/static/55f73743e4b051cfcc0b02cf/t/57506f387da24ff6bdecb3c1/1464889147417/Ethereum_Paper.pdf)
-
 Ameen Soleimani (Sept. 2016, talk) - [An Introduction to State Channels in
 Depth](https://www.youtube.com/watch?v=MEL50CVOcH4)
-
 Jeff Coleman (ongoing, wiki) - [State Channels Wiki](https://github.com/ledgerlabs/state-channels/wiki)
-
 Jeff Coleman (ongoing, code) - [Toy State Channels](https://github.com/ledgerlabs/toy-state-channels/tree/master/contracts)
-
 Heiko Hees (ongoing, code) - [Raiden Network](https://github.com/raiden-network/raiden)
-
 Sergey Ukustov (ongoing, code) - [Machinomy](https://github.com/machinomy/machinomy)
 
 I especially recommend Jeff Coleman's blog post and the Machinomy documentation
