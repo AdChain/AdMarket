@@ -7,7 +7,7 @@ import EthContract from 'ethjs-contract'
 import Web3 from 'web3'
 import HttpProvider from 'ethjs-provider-http'
 
-const SOL_PATH = __dirname + '/../src/'
+const SOL_PATH = __dirname + '/../contracts/'
 const TESTRPC_PORT = 8545
 const MNEMONIC = 'elegant ability lawn fiscal fossil general swarm trap bind require exchange ostrich'
 
@@ -25,9 +25,12 @@ export default async function (opts) {
   const noDeploy = opts.noDeploy
   const defaultAcct = opts.defaultAcct ? opts.defaultAcct : 0
 
-  const CHANNEL_TIMEOUT = 172800 // 30 days of 15s blocks on average
-  const CHALLENGE_PERIOD = 5760 // 1 day of 15s blocks on average
-  const OWNER_URL = 'foo.net'
+  // default: 30 days of 15s blocks on average
+  const channelTimeout =  opts.channelTimeout || 172800
+
+  // default: 1 day of 15s blocks on average
+  const challengePeriod = opts.challengePeriod || 5760
+  const ownerUrl = 'foo.net'
 
   // START TESTRPC PROVIDER
   let provider
@@ -59,7 +62,7 @@ export default async function (opts) {
   }
 
   const output = solc.compile({ sources: input }, 1)
-  if (output.errors) { throw new Error(output.errors) }
+  if (output.errors) { console.log(Error(output.errors)) }
 
   const abi = JSON.parse(output.contracts['AdMarket.sol:AdMarket'].interface)
   const bytecode = output.contracts['AdMarket.sol:AdMarket'].bytecode
@@ -74,7 +77,7 @@ export default async function (opts) {
 
   if (!noDeploy) {
     // DEPLOY THE ADMARKET CONTRACT
-    adMarketTxHash = await AdMarket.new(OWNER_URL, CHANNEL_TIMEOUT, CHALLENGE_PERIOD)
+    adMarketTxHash = await AdMarket.new(ownerUrl, channelTimeout, challengePeriod)
     await wait(1500)
     // USE THE ADDRESS FROM THE TX RECEIPT TO BUILD THE CONTRACT OBJECT
     adMarketReceipt = await eth.getTransactionReceipt(adMarketTxHash)

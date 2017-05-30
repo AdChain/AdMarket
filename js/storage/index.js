@@ -1,4 +1,3 @@
-
 import Datastore from 'nedb'
 import path from 'path'
 
