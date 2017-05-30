@@ -1,9 +1,0 @@
-{
-  "ignore": ["*.min.js"],
-  "compact": false,
-  "presets": [["env", {
-    "targets": {
-      "node": "current"
-    }
-    }], "stage-2"]
-}
