@@ -88,6 +88,53 @@ app.get('/verify', async function (req, res) {
   res.sendStatus(200)
 })
 
+app.post('/request_update', async function (req, res) {
+  const impression = req.body
+
+  console.log('Channel Update Requested')
+
+  // TODO verify the signature from the admarket...
+  if (impression.signature) {
+    console.log('AdMarket signature verified')
+
+    await p(impressionDB.insert.bind(impressionDB))(impression)
+
+    // TODO Before we dispatch, verify the inputs.
+    // new channel states are signed within the reducer
+    // TODO add flag to skip sigining?
+    // supply will need to call roughly the same function but without signing
+
+    dispatch({ type: 'IMPRESSION_SERVED', payload: impression })
+
+    // console.log(store.getState().get(0))
+    const channelState = store.getState().toJS()[0]
+
+    await p(channelDB.update.bind(channelDB))(
+      { channelId: CHANNEL_ID },
+      channelState,
+      { multi: true }
+    )
+
+    // no timeout for impressions=2, 100ms timeout for impressions=1
+    // const timeout = channelState.impressions == 1 ? 100 : 0
+    const timeout = 0
+
+    console.log('\nChannel Update Sent\n')
+    console.log(formatState(channelState))
+
+    request.post({ url: 'http://localhost:3001/channel_update', body: { impression, update: channelState }, json: true}, function () {})
+    request.post({ url: 'http://localhost:3002/channel_update', body: { impression, update: channelState }, json: true}, function () {})
+
+    res.sendStatus(200)
+
+  } else {
+    console.log('AdMarket ')
+    res.json([])
+  }
+
+
+})
+
 app.post('/', async function (req, res) {
   const impression = req.body
 

@@ -129,20 +129,11 @@ export function supplyChannelsReducer (channels = List([]), { type, payload }) {
       // payload is an array of impressions
       // [ { impressionId, signature, price, ... } ... ]
 
-      [index, channel] = findChannel(channels, payload)
-      if (channel) {
-        // remove the impressions from the pendingImpressions queue
-        // add the impressions to the pendingUpdateRequests queue
+      let impression = payload[0]
+      // remove the impressions from the pendingImpressions queue
+      // add the impressions to the pendingUpdateRequests queue
 
-
-
-
-
-
-      } else {
-        return channels
-      }
-
+      return channels.deleteIn([0, 'pendingImpressions', 0]).setIn([0, 'pendingUpdateRequests', 0], impression)
 
     case 'IMPRESSION_NOT_FOUND':
       // TOTAL HACK

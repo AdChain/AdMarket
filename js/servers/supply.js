@@ -212,16 +212,16 @@ function requestSignatures (impressionIds, cb) {
 
       dispatch({ type: 'SIGNATURES_RECEIVED', payload: validSignedImpressions })
 
+      request.post({ url: 'http://localhost:3000/request_update', body: validSignedImpressions[0], json: true }, function (err, res, body) {
+        console.log('Response from Demand received')
+      })
+
     // Impression was not found
     } else if (signedImpressions && signedImpressions.length == 0) {
       console.log('Impression not found')
       dispatch({ type: 'IMPRESSION_NOT_FOUND', payload: impressionIds })
+      cb()
     }
-
-    // Send the bundle of signed impressions (send actual impressions) to
-    // Demand
-
-    cb()
   })
 }
 
