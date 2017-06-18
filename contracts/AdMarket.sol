@@ -1,14 +1,5 @@
 pragma solidity ^0.4.7;
 
-// 5/6/2017 Cleanup
-//
-// Goal is to ship, can add features later
-// - demo parallel impression tracking system
-// - can inform clearing / settlement
-
-// Refactor to optionally renew the channel. By default, checkpointing will close.
-// Either party can checkpoint and opt to not renew, which closes the channel.
-
 import "ECVerify.sol";
 
 // Registers supply and demand, facilitates discovery, and manages the impression tracking state channels between them
@@ -18,11 +9,21 @@ contract AdMarket is ECVerify {
 
   address owner;
   string ownerUrl;
+
   mapping (address => string) public registeredDemand;
+  // registeredDemand[0xabc...] => toyota.adserver.com
+
   mapping (address => string) public registeredSupply;
+  // registeredSupply[0xdef...] => nyt.adserver.com
+
   mapping (bytes32 => Channel) channels;
+  // channels[channelId] => channel metadata
+
   mapping (bytes32 => Challenge) challenges;
-  mapping (address => address[]) channelPartners;
+  // channels[channelId] => channel challenge metadata
+
+  mapping (address => mapping (address => bool)) channelPartners;
+  // channelPartners[demand][supply] => true/false
 
   uint256 public channelCount = 0;
   uint256 public channelTimeout; // max lifetime of a channel in blocks
@@ -41,13 +42,13 @@ contract AdMarket is ECVerify {
     // Metadata (not included in offchain state updates)
     ChannelState state;
     uint256 expiration; // block number after which the channel expires and can be closed by anyone (set in openChannel)
-    uint256 challengeTimeout; // block number after which the channel can be closed by its participants (set in proposeCloseChannel)
+    uint256 challengeTimeout; // block number after which the channel can be closed by its participants (set in proposeCheckpointChannel and challengeCheckpointChannel)
     bytes32 proposedRoot; // a placeholder root which is only stored and set after the challenge period is over
   }
 
   // Note: Root is the merkle root of the previous root and the current state. The current state includes:
   //  - balance: demand -> supply
-  //  - impressions (#)
+  //  - impressions (#) (sequence number)
   //  - impressionId
   //  - impressionPrice
   // In case of a dispute, the data can be made public and verified onchain using merkle proofs.
@@ -115,6 +116,7 @@ contract AdMarket is ECVerify {
   }
 
   function registerSupply(address supply, string url) only_owner {
+    if (isEmptyString(url)) throw; // must at least provide a non-empty string to update later
     registeredSupply[supply] = url;
     SupplyRegistered(supply);
   }
@@ -151,12 +153,7 @@ contract AdMarket is ECVerify {
     if (!isRegisteredSupply(supply)) throw;
 
     // Check that we don't already have a channel open with the supply
-    // TODO with enough channel partners, this check will always run out of gas
-    // This will limit the number of channels any party can have
-    address[] storage partners = channelPartners[demand];
-    for (uint256 i = 0; i < partners.length; i++) {
-      if (partners[i] == supply) throw;
-    }
+    if (channelPartners[demand][supply]) throw;
 
     bytes32 channelId = sha3(channelCount++);
     uint256 expiration = block.number + channelTimeout;
@@ -173,15 +170,14 @@ contract AdMarket is ECVerify {
       0 // proposed root
     );
 
-    channelPartners[demand].push(supply);
+    channelPartners[demand][supply] = true;
   }
 
   // Either supply or demand can checkpoint a channel at any time
   // We have to have a challenge period because we aren't tracking sequence number (impressions) onchain.
   // Checkpointing gives us the ability to have long-lived channels without downtime.
   // The channel participants can elect to renew the channel during a checkpoint.
-  // If a channel is open and also has a challengeTimeout, that challengeTimeout is interpreted as a checkpoint challenge period.
-  function proposeCheckpointChannel(
+  function proposeCheckpoint(
     bytes32 channelId,
     bytes32 proposedRoot,
     bytes signature,
@@ -240,14 +236,14 @@ contract AdMarket is ECVerify {
   // They also supply the proof for this impression count and the Demand's signature on it.
   // This resets the challengeTimeout giving the counterparty a chance to accept this challenge.
   // To accept the challenge, the counterparty must prove that the original checkpointed root has more impressions
-function challengeCheckpointChannel(
-  bytes32 channelId,
-  bytes32 challengeRoot,
-  uint256 impressions,
-  uint256 index,
-  bytes merkleProof,
-  bytes signature
-) {
+  function challengeCheckpoint(
+    bytes32 channelId,
+    bytes32 challengeRoot,
+    uint256 impressions,
+    uint256 index,
+    bytes merkleProof,
+    bytes signature
+  ) {
     Channel channel = channels[channelId];
 
     // Check that msg.sender is either demand or supply
@@ -291,7 +287,7 @@ function challengeCheckpointChannel(
   // and the state is finalized by the checkPointChannel function
   // If the participants intend to renew, the channel will stay open and its expiration block will reset.
   // Otherwise the channel will close.
-  function acceptChallengeCheckpointChannel(
+  function acceptChallenge(
     bytes32 channelId,
     uint256 impressions,
     uint256 index,
@@ -327,6 +323,7 @@ function challengeCheckpointChannel(
     // close channel
     } else {
       channel.state = ChannelState.Closed;
+      channelPartners[channel.demand][channel.supply] = false;
     }
 
     // even if the channel is closed, we want to record the final state root
@@ -372,6 +369,7 @@ function challengeCheckpointChannel(
     // close channel
     } else {
       channel.state = ChannelState.Closed;
+      channelPartners[channel.demand][channel.supply] = false;
     }
 
     channel.proposedRoot = 0;

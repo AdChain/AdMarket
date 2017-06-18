@@ -1,2 +1,6 @@
-{"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"1","time":1492462635.747,"_id":"ro8fq0hej37ws81s"}
 {"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"2","time":1492462635.747,"_id":"btyi8hsO5nJtWqnO"}
+{"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"1","time":1492462635.747,"_id":"ro8fq0hej37ws81s"}
+{"$$deleted":true,"_id":"btyi8hsO5nJtWqnO"}
+{"$$deleted":true,"_id":"ro8fq0hej37ws81s"}
+{"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"1","time":1497662040.593,"_id":"W3yAsFgQqmbEDeOO"}
+{"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"2","time":1497662040.593,"_id":"y9e0j53ehDDF2Nnd"}

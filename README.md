@@ -162,7 +162,7 @@ enum ChannelState { Open, Checkpointing, Closing, Closed }
 ```
 
 - `expiration` - block number after which the channel expires and can be closed by anyone (set in `openChannel`)
-- `challengeTimeout` - block number after which a proposed checkpoint or valid challenge can be finalized (set in `proposeCheckpointChannel` and `challengeCheckpointChannel`)
+- `challengeTimeout` - block number after which a proposed checkpoint or valid challenge can be finalized (set in `proposeCheckpoint` and `challengeCheckpoint`)
 - `proposedRoot` - a placeholder root which is only stored and set after the challenge period is over
 
 #### Checkpointing the Channel
@@ -178,7 +178,7 @@ The signature provided must be from the demand and is verified in the contract m
 If `renew` is set to `true`, the channel will remain open once the checkpoint is completed.
 
 ```
-function proposeCheckpointChannel(
+function proposeCheckpoint(
   bytes32 channelId,
   bytes32 proposedRoot,
   bytes signature,
@@ -191,7 +191,7 @@ function proposeCheckpointChannel(
 Proposing a checkpoint triggers a challenge period during which either party can challenge the `proposedRoot` by submitting a signed state update -- the `challengeRoot` -- with a higher impression count (the impressions count is sequence number). The index of the impressions in the state array and the corresponding merkle proof are required to verify that the impressions value is included in the `challengeRoot`.
 
 ```
-function challengeCheckpointChannel(
+function challengeCheckpoint(
   bytes32 channelId,
   bytes32 challengeRoot,
   uint256 impressions,
@@ -206,7 +206,7 @@ function challengeCheckpointChannel(
 If a challenge was issued, the challenge period is reset, providing time to answer the challenge. To accept the challenge, the party must provide an impressions count which can be proven to be included in the original `proposedRoot`, and is higher than the impressions in the challenge. Should this be the case, the checkpointing immediately completes and the original `proposedRoot` is recorded.
 
 ```
-function acceptChallengeCheckpointChannel(
+function acceptChallenge(
   bytes32 channelId,
   uint256 impressions,
   uint256 index,

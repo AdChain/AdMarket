@@ -12,13 +12,10 @@ import { channelsReducer } from '../reducers'
 import { impressionDB, channelDB } from '../storage'
 import { makeChannel, makeUpdate } from '../channel'
 
-// TODO should be API client for supply
-
 const web3 = new Web3()
 
 const p = Promise.promisify
 
-// const rootReducer = combineReducers(channelsReducer)
 const store = createStore(channelsReducer)
 const dispatch = store.dispatch
 

@@ -18,7 +18,6 @@ const web3 = new Web3()
 
 const p = Promise.promisify
 
-// const rootReducer = combineReducers(supplyChannelsReducer)
 const store = createStore(supplyChannelsReducer)
 const dispatch = store.dispatch
 

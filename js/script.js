@@ -4,6 +4,8 @@
 
 const request = require('request-promise')
 
+const mode = process.env.mode
+
 const wait = timeout => new Promise(resolve => setTimeout(resolve, timeout))
 
 function generateImpressions (count, price, supplyId, demandId) {
@@ -21,14 +23,16 @@ const impressions = generateImpressions(2, 1, supplyId, demandId)
 console.log(impressions)
 
 async function openChannel () {
+  // Supply
   await request('http://localhost:3000/open')
-  console.log('Opened Demand')
 
+  // Demand
   await request('http://localhost:3001/open')
-  console.log('Opened Supply')
 
+  // AdMarket
   await request('http://localhost:3002/open')
-  console.log('Opened AdMarket')
+
+  console.log('Connected to all adservers')
 }
 
 async function sendImpression (impression) {
@@ -54,7 +58,7 @@ async function sendImpression (impression) {
 async function main () {
   await openChannel()
 
-  for (const impression of impressions) {
+  for (let impression of impressions) {
     await sendImpression(impression)
   }
 

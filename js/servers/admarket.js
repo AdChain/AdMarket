@@ -19,7 +19,6 @@ const p = Promise.promisify
 
 const privKey = new Buffer(config.adMarket.privKey, 'hex')
 
-// const rootReducer = combineReducers(admarketChannelsReducer)
 const store = createStore(admarketChannelsReducer)
 const dispatch = store.dispatch
 

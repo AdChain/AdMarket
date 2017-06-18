@@ -238,7 +238,7 @@ describe('AdMarket', () => {
       await revertSnapshot(snapshots.pop())
     })
 
-    it('proposeCheckpointChannel -- renew', async () => {
+    it('proposeCheckpoint -- renew', async () => {
       const blockNumber = await p(web3.eth.getBlockNumber.bind(web3.eth))()
       const challengePeriod = parseBN((await p(adMarket.challengePeriod)())[0])
       const challengeTimeout = blockNumber + challengePeriod + 1
@@ -247,7 +247,7 @@ describe('AdMarket', () => {
       channel.root = proposedRoot
       const fingerprint = getFingerprint(channel)
       const sig = await p(web3.eth.sign)(demand, fingerprint)
-      await adMarket.proposeCheckpointChannel(
+      await adMarket.proposeCheckpoint(
         channelId, proposedRoot, sig, true, { from: demand }
       )
 
@@ -257,7 +257,7 @@ describe('AdMarket', () => {
       assert.equal(updatedChannel.proposedRoot, proposedRoot)
     })
 
-    it('proposeCheckpointChannel -- close', async () => {
+    it('proposeCheckpoint -- close', async () => {
       const blockNumber = await p(web3.eth.getBlockNumber.bind(web3.eth))()
       const challengePeriod = parseBN((await p(adMarket.challengePeriod)())[0])
       const challengeTimeout = blockNumber + challengePeriod + 1
@@ -266,7 +266,7 @@ describe('AdMarket', () => {
       channel.root = proposedRoot
       const fingerprint = getFingerprint(channel)
       const sig = await p(web3.eth.sign)(demand, fingerprint)
-      await adMarket.proposeCheckpointChannel(
+      await adMarket.proposeCheckpoint(
         channelId, proposedRoot, sig, false, { from: demand }
       )
 
@@ -281,7 +281,7 @@ describe('AdMarket', () => {
       channel.root = proposedRoot
       const fingerprint = getFingerprint(channel)
       const sig = await p(web3.eth.sign)(demand, fingerprint)
-      await adMarket.proposeCheckpointChannel(
+      await adMarket.proposeCheckpoint(
         channelId, proposedRoot, sig, true, { from: demand }
       )
 
@@ -306,7 +306,7 @@ describe('AdMarket', () => {
       channel.root = proposedRoot
       const fingerprint = getFingerprint(channel)
       const sig = await p(web3.eth.sign)(demand, fingerprint)
-      await adMarket.proposeCheckpointChannel(
+      await adMarket.proposeCheckpoint(
         channelId, proposedRoot, sig, false, { from: demand }
       )
 
@@ -326,7 +326,7 @@ describe('AdMarket', () => {
       assert.equal(updatedChannel.proposedRoot, 0)
     })
 
-    it('challengeCheckpointChannel', async () => {
+    it('challengeCheckpoint', async () => {
       const update = {
         impressionId: web3.sha3('bar'),
         price: 2
@@ -336,7 +336,7 @@ describe('AdMarket', () => {
       const proposedRoot = updatedChannel.get('root')
       const fingerprint = getFingerprint(updatedChannel)
       const sig = await p(web3.eth.sign)(demand, fingerprint)
-      await adMarket.proposeCheckpointChannel(
+      await adMarket.proposeCheckpoint(
         channelId, proposedRoot, sig, true, { from: demand }
       )
 
@@ -359,7 +359,7 @@ describe('AdMarket', () => {
       const index = 3
       const proof = tree.getProofOrdered(impressionsLeaf, index, true)
 
-      await adMarket.challengeCheckpointChannel(
+      await adMarket.challengeCheckpoint(
         channelId, root, 2, 3, proof, sig2, { from: supply }
       )
 
@@ -373,7 +373,7 @@ describe('AdMarket', () => {
       assert.equal(challengedChannel.challengeTimeout, challengeTimeout)
     })
 
-    it('acceptChallengeCheckpointChannel', async () => {
+    it('acceptChallenge', async () => {
       // proposeCheckpoint with 2 impressions
       // challengeCheckpoint with 1 impression
       // acceptChallenge with 2 impressions
@@ -400,7 +400,7 @@ describe('AdMarket', () => {
       const fingerprint2 = getFingerprint(updatedChannel2)
       const sig2 = await p(web3.eth.sign)(demand, fingerprint2)
 
-      await adMarket.proposeCheckpointChannel(
+      await adMarket.proposeCheckpoint(
         channelId, root2, sig2, true, { from: supply }
       )
 
@@ -410,7 +410,7 @@ describe('AdMarket', () => {
       const tree1 = new MerkleTree(leaves1, true)
       const proof1 = tree1.getProofOrdered(impressionsLeaf1, index, true)
 
-      await adMarket.challengeCheckpointChannel(
+      await adMarket.challengeCheckpoint(
         channelId, root1, 1, index, proof1, sig1, { from: demand }
       )
 
@@ -420,7 +420,7 @@ describe('AdMarket', () => {
       const tree2 = new MerkleTree(leaves2, true)
       const proof2 = tree2.getProofOrdered(impressionsLeaf2, index, true)
 
-      await adMarket.acceptChallengeCheckpointChannel(
+      await adMarket.acceptChallenge(
         channelId, 2, index, proof2, { from: supply }
       )
 
@@ -458,7 +458,7 @@ describe('AdMarket', () => {
       const fingerprint1 = getFingerprint(updatedChannel1)
       const sig1 = await p(web3.eth.sign)(demand, fingerprint1)
 
-      await adMarket.proposeCheckpointChannel(
+      await adMarket.proposeCheckpoint(
         channelId, root1, sig1, true, { from: demand }
       )
 
@@ -477,7 +477,7 @@ describe('AdMarket', () => {
       const tree2 = new MerkleTree(leaves2, true)
       const proof2 = tree2.getProofOrdered(impressionsLeaf2, index, true)
 
-      await adMarket.challengeCheckpointChannel(
+      await adMarket.challengeCheckpoint(
         channelId, root2, 2, index, proof2, sig2, { from: supply }
       )
 
@@ -488,7 +488,7 @@ describe('AdMarket', () => {
       const proof1 = tree1.getProofOrdered(impressionsLeaf1, index, true)
 
       try {
-        await adMarket.acceptChallengeCheckpointChannel(
+        await adMarket.acceptChallenge(
           channelId, 2, index, proof1, { from: demand }
         )
       } catch (err) {
