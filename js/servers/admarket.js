@@ -84,8 +84,8 @@ app.post('/channel_update', async function (req, res) {
 
   const channelState = store.getState().toJS()[0]
 
-  console.log('\nCHANNEL_UPDATE - CHANNEL STATE\n')
-  console.log(channelState)
+  console.log('\nChannel Update Received\n')
+  console.log(formatState(channelState))
 
   await p(channelDB.update.bind(channelDB))(
     { channelId: CHANNEL_ID },
@@ -100,6 +100,7 @@ app.get('/request_signature', async function (req, res) {
   // Just need the impression Id?
   const impressions = req.body
 
+  console.log('Signature requested for impressions:\n')
   console.log(impressions)
 
   const savedImpressions = await p(impressionDB.find.bind(impressionDB))({
@@ -108,14 +109,21 @@ app.get('/request_signature', async function (req, res) {
 
   // needs to return signed impressions, each signed individually
   // [ { impressionId, signature } ... ]
-  console.log(savedImpressions)
-  const signedImpressions = savedImpressions.map(impression => {
-    impression.signature = sign(sha3(impression.impressionId), privKey)
-    delete impression._id
-    return impression
-  })
+  if (savedImpressions && savedImpressions.length) {
+    console.log('Impression found')
 
-  res.json(signedImpressions)
+    const signedImpressions = savedImpressions.map(impression => {
+      impression.signature = sign(sha3(impression.impressionId), privKey)
+      delete impression._id
+      return impression
+    })
+
+    res.json(signedImpressions)
+
+  } else {
+    console.log('Impression not found')
+    res.json([])
+  }
 })
 
 app.post('/', async function (req, res) {
@@ -129,6 +137,7 @@ app.post('/', async function (req, res) {
 
   const impression = req.body
 
+  console.log('\nImpression Received:\n')
   console.log(impression)
 
   // TODO If impression doesn't exist in DB, save it. (for now just save)
@@ -140,3 +149,15 @@ app.post('/', async function (req, res) {
 app.listen(3002, function () {
   console.log('listening on 3002')
 })
+
+function formatState(state) {
+  return {
+    price: state.price,
+    impressionId: state.impressionId,
+    balance: state.balance,
+    impressions: state.impressions,
+    prevRoot: state.prevRoot,
+    root: state.root,
+    signature: state.signature
+  }
+}

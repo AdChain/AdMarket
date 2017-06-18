@@ -91,6 +91,9 @@ app.get('/verify', async function (req, res) {
 app.post('/', async function (req, res) {
   const impression = req.body
 
+  console.log('\nImpression Received:\n')
+  console.log(impression)
+
   await p(impressionDB.insert.bind(impressionDB))(impression)
 
   // TODO Before we dispatch, verify the inputs.
@@ -103,9 +106,6 @@ app.post('/', async function (req, res) {
   // console.log(store.getState().get(0))
   const channelState = store.getState().toJS()[0]
 
-  console.log('\nCHANNEL STATE\n')
-  console.log(channelState)
-
   await p(channelDB.update.bind(channelDB))(
     { channelId: CHANNEL_ID },
     channelState,
@@ -115,6 +115,9 @@ app.post('/', async function (req, res) {
   // no timeout for impressions=2, 100ms timeout for impressions=1
   // const timeout = channelState.impressions == 1 ? 100 : 0
   const timeout = 0
+
+  console.log('\nChannel Update Sent\n')
+  console.log(formatState(channelState))
 
   setTimeout(function () {
     if (channelState.impressions == 1) {
@@ -135,3 +138,15 @@ app.get('/state', function (req, res) {
 app.listen(3000, function () {
   console.log('listening on 3000')
 })
+
+function formatState(state) {
+  return {
+    price: state.price,
+    impressionId: state.impressionId,
+    balance: state.balance,
+    impressions: state.impressions,
+    prevRoot: state.prevRoot,
+    root: state.root,
+    signature: state.signature
+  }
+}

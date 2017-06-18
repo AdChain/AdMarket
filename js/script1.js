@@ -1,6 +1,5 @@
-// script.js
-// Helper script to hit servers as I develop
-// will eventually become api clients
+// script1.js
+// Generates 1 impression, sends to all participants
 
 const request = require('request-promise')
 
@@ -19,8 +18,10 @@ function generateImpressions (count, price, supplyId, demandId) {
 const demandId = '0x11111111111111111111'
 const supplyId = '0x22222222222222222222'
 
-const impressions = generateImpressions(2, 1, supplyId, demandId)
+const impressions = generateImpressions(1, 1, supplyId, demandId)
+console.log('\nImpression to send:\n')
 console.log(impressions)
+console.log('\n')
 
 async function openChannel () {
   // Supply
@@ -36,20 +37,20 @@ async function openChannel () {
 }
 
 async function sendImpression (impression) {
-  await request.post({
+  request.post({
+    url: 'http://localhost:3002',
+    body: impression,
+    json: true
+  })
+
+  request.post({
     url: 'http://localhost:3000',
     body: impression,
     json: true
   })
 
-  await request.post({
+  request.post({
     url: 'http://localhost:3001',
-    body: impression,
-    json: true
-  })
-
-  await request.post({
-    url: 'http://localhost:3002',
     body: impression,
     json: true
   })
@@ -62,11 +63,10 @@ async function main () {
     await sendImpression(impression)
   }
 
-  await wait(1000)
+  console.log('Impressions sent')
 
-  const body = await request('http://localhost:3001/state')
-
-  console.log(JSON.parse(body)[0])
+  // await wait(1000)
+  // const body = await request('http://localhost:3001/state')
 
   /*
   request.get({ url: 'http://localhost:3000/verify', body: {

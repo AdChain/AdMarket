@@ -144,6 +144,13 @@ export function supplyChannelsReducer (channels = List([]), { type, payload }) {
       }
 
 
+    case 'IMPRESSION_NOT_FOUND':
+      // TOTAL HACK
+
+      // for each id in the impressionIds array,
+      // remove the impression from the pendingImpressions array
+
+      return channels.deleteIn([0, 'pendingImpressions', 0])
 
     case 'CHANNEL_OPENED':
       // TODO allow for multiple channels, right now just create a new list

@@ -114,8 +114,8 @@ app.post('/channel_update', async function (req, res) {
 
   const channelState = store.getState().toJS()[0]
 
-  console.log('\nCHANNEL_UPDATE - CHANNEL STATE\n')
-  console.log(channelState)
+  console.log('\nChannel Update Received\n')
+  console.log(formatState(channelState))
 
   await p(channelDB.update.bind(channelDB))(
     { channelId: CHANNEL_ID },
@@ -136,6 +136,9 @@ app.post('/', async function (req, res) {
   // but out of order, so it is saved but still in the pendingUpdates queue.
 
   const impression = req.body
+
+  console.log('\nImpression Received:\n')
+  console.log(impression)
 
   // TODO If impression doesn't exist in DB, save it. (for now just save)
   await p(impressionDB.insert.bind(impressionDB))(impression)
@@ -181,8 +184,10 @@ app.listen(3001, function () {
 function requestSignatures (impressionIds, cb) {
   request.get({ url: 'http://localhost:3002/request_signature', body: impressionIds, json: true }, function (err, res, body) {
     if (err) { throw err }
-    console.log(body)
     const signedImpressions = body
+
+    console.log('Response from AdMarket')
+    console.log(signedImpressions)
 
     // filter out invalid impressions, only dispatch the ones that succeeded
     // retry the failed impressions? need some limit or timeout.
@@ -202,9 +207,15 @@ function requestSignatures (impressionIds, cb) {
         return ecrecover(web3.sha3(impression.impressionId), impression.signature) == config.adMarket.address
       })
 
-      console.log(validSignedImpressions)
+      console.log('Signature received from AdMarket:\n')
+      console.log(signedImpressions)
 
       dispatch({ type: 'SIGNATURES_RECEIVED', payload: validSignedImpressions })
+
+    // Impression was not found
+    } else if (signedImpressions && signedImpressions.length == 0) {
+      console.log('Impression not found')
+      dispatch({ type: 'IMPRESSION_NOT_FOUND', payload: impressionIds })
     }
 
     // Send the bundle of signed impressions (send actual impressions) to
@@ -218,19 +229,24 @@ function requestSignatures (impressionIds, cb) {
 // looping over all pending impressions seems simpler than putting setTimeouts
 // for each impressions
 function loopPendingImpressions (timeout) {
-  console.log('loop')
   setTimeout(function () {
     if (IS_OPEN) {
       const now = new Date() / 1000
       const pending = store.getState().get(0).get('pendingImpressions').filter(impression => {
         return now - impression.time > 2
-      })
-      console.log(pending)
+      }).toJS()
 
-      requestSignatures(pending.toJS(), function (err) {
-        if (err) { throw err }
+      if (pending.length) {
+        console.log(pending)
+        console.log('Requesting signatures from AdMarket')
+        requestSignatures(pending, function (err) {
+          if (err) { throw err }
+          loopPendingImpressions(timeout)
+        })
+      } else {
         loopPendingImpressions(timeout)
-      })
+      }
+
     } else {
       loopPendingImpressions(timeout)
     }
@@ -238,3 +254,15 @@ function loopPendingImpressions (timeout) {
 }
 
 loopPendingImpressions(2000)
+
+function formatState(state) {
+  return {
+    price: state.price,
+    impressionId: state.impressionId,
+    balance: state.balance,
+    impressions: state.impressions,
+    prevRoot: state.prevRoot,
+    root: state.root,
+    signature: state.signature
+  }
+}
