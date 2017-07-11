@@ -3,10 +3,11 @@ import p from 'es6-promisify'
 import Web3 from 'web3'
 import MerkleTree, { checkProof, merkleRoot } from 'merkle-tree-solidity'
 import { sha3 } from 'ethereumjs-util'
+
 import setup from './setup'
 import { parseChannel, getFingerprint, getRoot, solSha3, parseLogAddress,
   verifySignature, makeUpdate, verifyUpdate, parseBN } from './channel'
-import { wait } from './utils'
+import wait from './utils/wait'
 
 const web3 = new Web3()
 const accounts = web3.eth.accounts

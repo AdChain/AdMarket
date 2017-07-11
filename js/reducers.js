@@ -1,9 +1,9 @@
 import { List, Map } from 'immutable'
 import { combineReducers } from 'redux-immutable'
 import { createStore } from 'redux'
-import { makeChannel, parseChannel, makeUpdate } from './channel'
-
 import Web3 from 'web3'
+
+import { makeChannel, parseChannel, makeUpdate } from './channel'
 
 const web3 = new Web3()
 

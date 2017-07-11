@@ -5,19 +5,25 @@
 import { createStore } from 'redux'
 import { combineReducers } from 'redux-immutable'
 import { List } from 'immutable'
-import { admarketChannelsReducer } from '../reducers'
-import { amImpDB as impressionDB, amChDB as channelDB } from '../storage'
-import { makeChannel, makeUpdate, sign } from '../channel'
-import config from '../config'
-import Promise from 'bluebird'
 import Web3 from 'web3'
+
+import config from '../config'
+import { admarketChannelsReducer } from '../reducers'
+import { adMarketImpressionDB as impressionDB, adMarketChannelDB as channelDB } from '../storage'
+import { makeChannel, sign } from '../channel'
+const {
+  demand: {hostUrl: demandHostUrl},
+  supply: {hostUrl: supplyHostUrl},
+  adMarket: {
+    privKey: adMarketPrivKey,
+    hostUrl: adMarketHostUrl
+  }
+} = config
 
 const web3 = new Web3()
 const sha3 = web3.sha3
 
-const p = Promise.promisify
-
-const privKey = new Buffer(config.adMarket.privKey, 'hex')
+const privKey = new Buffer(adMarketPrivKey, 'hex')
 
 const store = createStore(admarketChannelsReducer)
 const dispatch = store.dispatch
@@ -54,11 +60,14 @@ let IS_OPEN = false
 // This will have to change
 app.get('/open', async function (req, res) {
   IS_OPEN = true
-  await p(channelDB.remove.bind(channelDB))({}, { multi: true })
-  await p(impressionDB.remove.bind(impressionDB))({}, { multi: true })
-  await p(channelDB.insert.bind(channelDB))(channel)
+
+  await channelDB.remove({}, { multi: true })
+  await impressionDB.remove({}, { multi: true })
+
+  await channelDB.insert(channel)
   dispatch({ type: 'CHANNEL_OPENED', payload: channel })
-  // console.log(await p(channelDB.find.bind(channelDB))({ channelId: CHANNEL_ID}))
+  // console.log(await channelDB.find({channelId: CHANNEL_ID}))
+
   res.sendStatus(200)
 })
 
@@ -68,7 +77,7 @@ app.post('/channel_update', async function (req, res) {
   // TODO Before we dispatch, verify the inputs.
 
   // TODO If impression doesn't exist in DB, save it. (for now just save)
-  await p(impressionDB.insert.bind(impressionDB))(impression)
+  await impressionDB.insert(impression)
 
   // How can we tell if the impression has already been received?
   // It should exist in the DB, and also be in the pendingImpression queue.
@@ -87,7 +96,7 @@ app.post('/channel_update', async function (req, res) {
   console.log('\nChannel Update Received\n')
   console.log(formatState(channelState))
 
-  await p(channelDB.update.bind(channelDB))(
+  await channelDB.update(
     { channelId: CHANNEL_ID },
     channelState,
     { multi: true }
@@ -103,7 +112,7 @@ app.get('/request_signature', async function (req, res) {
   console.log('Signature requested for impressions:\n')
   console.log(impressions)
 
-  const savedImpressions = await p(impressionDB.find.bind(impressionDB))({
+  const savedImpressions = await impressionDB.find({
     impressionId: { $in: impressions.map(({ impressionId }) => impressionId) }
   })
 
@@ -137,17 +146,16 @@ app.post('/', async function (req, res) {
 
   const impression = req.body
 
-  console.log('\nImpression Received:\n')
-  console.log(impression)
+  console.log('\nImpression Received:\n', impression)
 
   // TODO If impression doesn't exist in DB, save it. (for now just save)
-  await p(impressionDB.insert.bind(impressionDB))(impression)
+  await impressionDB.insert(impression)
 
   res.sendStatus(200)
 })
 
 app.listen(3002, function () {
-  console.log('listening on 3002')
+  console.log('AdMarket listening on 3002')
 })
 
 function formatState(state) {

@@ -1,15 +1,18 @@
 const config = {
   demand: {
     address: '0x3055a99a7faf398c57483df87826366acdbe62c7',
-    privKey: 'a05fc3b43673fce3cfbfe92e30be397e293728d3f314d37ae21489b6a4cfc1e4'
+    privKey: 'a05fc3b43673fce3cfbfe92e30be397e293728d3f314d37ae21489b6a4cfc1e4',
+    hostUrl: 'http://localhost:3000'
   },
   supply: {
     address: '0x43dcbf684ed06db394186624d2a1600f99c14e69',
-    privKey: 'c3bc97034d7e7076dfb0cad842a899cb6e3b9964e8eb56148762042e2b43ad10'
+    privKey: 'c3bc97034d7e7076dfb0cad842a899cb6e3b9964e8eb56148762042e2b43ad10',
+    hostUrl: 'http://localhost:3001'
   },
   adMarket: {
     address: '0x880f6d91e462a06c5ba6007aaae4f0a700d428c9',
-    privKey: '19fdeb280ed2eda8d5fafa93cbc1638e3d99c22b1509aaa4ef29dab2227b3fbd'
+    privKey: '19fdeb280ed2eda8d5fafa93cbc1638e3d99c22b1509aaa4ef29dab2227b3fbd',
+    hostUrl: 'http://localhost:3002'
   }
 }
 

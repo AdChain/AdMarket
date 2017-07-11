@@ -6,15 +6,19 @@
 import request from 'request'
 import { createStore } from 'redux'
 import { combineReducers } from 'redux-immutable'
-import Promise from 'bluebird'
 import Web3 from 'web3'
+
 import { channelsReducer } from '../reducers'
 import { impressionDB, channelDB } from '../storage'
 import { makeChannel, makeUpdate } from '../channel'
+import config from '../config'
+const {
+  demand: {hostUrl: demandHostUrl},
+  supply: {hostUrl: supplyHostUrl},
+  adMarket: {hostUrl: adMarketHostUrl}
+} = config
 
 const web3 = new Web3()
-
-const p = Promise.promisify
 
 const store = createStore(channelsReducer)
 const dispatch = store.dispatch
@@ -51,11 +55,13 @@ app.use(bodyParser.json())
 // impressions
 // This will have to change
 app.get('/open', async function (req, res) {
-  await p(channelDB.remove.bind(channelDB))({}, { multi: true })
-  await p(impressionDB.remove.bind(impressionDB))({}, { multi: true })
-  await p(channelDB.insert.bind(channelDB))(channel)
+  await channelDB.remove({}, { multi: true })
+  await impressionDB.remove({}, { multi: true })
+
+  await channelDB.insert(channel)
   dispatch({ type: 'CHANNEL_OPENED', payload: channel })
-  // console.log(await p(channelDB.find.bind(channelDB))({ channelId: CHANNEL_ID}))
+  // console.log(await channelDB.find({channelId: CHANNEL_ID}))
+
   res.sendStatus(200)
 })
 
@@ -69,9 +75,11 @@ app.get('/verify', async function (req, res) {
   // should be the impression # to end at.
   //
   // req: { supplyId, demandId, root, from, to }
-  // const saved = await p(impressionDB.find.bind(impressionDB))({ supplyId: req.supplyId, demandId: req.demandId})
+  // const saved = await impressionDB.find({ supplyId: req.supplyId, demandId: req.demandId})
 
-  const saved = await p(impressionDB.find.bind(impressionDB))({ supplyId: req.body.supplyId, demandId: req.body.demandId })
+  const {supplyId, demandId} = req.body
+  const saved = await impressionDB.find({supplyId, demandId})
+
   // NOTE - query responses are not ordered
   saved.sort((a, b) => {
     return a.impressionId - b.impressionId
@@ -97,7 +105,7 @@ app.post('/request_update', async function (req, res) {
   if (impression.signature) {
     console.log('AdMarket signature verified')
 
-    await p(impressionDB.insert.bind(impressionDB))(impression)
+    await impressionDB.insert(impression)
 
     // TODO Before we dispatch, verify the inputs.
     // new channel states are signed within the reducer
@@ -109,7 +117,7 @@ app.post('/request_update', async function (req, res) {
     // console.log(store.getState().get(0))
     const channelState = store.getState().toJS()[0]
 
-    await p(channelDB.update.bind(channelDB))(
+    await channelDB.update(
       { channelId: CHANNEL_ID },
       channelState,
       { multi: true }
@@ -122,8 +130,19 @@ app.post('/request_update', async function (req, res) {
     console.log('\nChannel Update Sent\n')
     console.log(formatState(channelState))
 
-    request.post({ url: 'http://localhost:3001/channel_update', body: { impression, update: channelState }, json: true}, function () {})
-    request.post({ url: 'http://localhost:3002/channel_update', body: { impression, update: channelState }, json: true}, function () {})
+    const payload = { impression, update: channelState }
+
+    request.post({
+      url: `${supplyHostUrl}/channel_update`,
+      body: payload,
+      json: true
+    }, () => ({}))
+
+    request.post({
+      url: `${adMarketHostUrl}/channel_update`,
+      body: payload,
+      json: true
+    }, () => ({}))
 
     res.sendStatus(200)
 
@@ -138,10 +157,9 @@ app.post('/request_update', async function (req, res) {
 app.post('/', async function (req, res) {
   const impression = req.body
 
-  console.log('\nImpression Received:\n')
-  console.log(impression)
+  console.log('\nImpression Received:\n', impression)
 
-  await p(impressionDB.insert.bind(impressionDB))(impression)
+  await impressionDB.insert(impression)
 
   // TODO Before we dispatch, verify the inputs.
   // new channel states are signed within the reducer
@@ -153,7 +171,7 @@ app.post('/', async function (req, res) {
   // console.log(store.getState().get(0))
   const channelState = store.getState().toJS()[0]
 
-  await p(channelDB.update.bind(channelDB))(
+  await channelDB.update(
     { channelId: CHANNEL_ID },
     channelState,
     { multi: true }
@@ -166,24 +184,35 @@ app.post('/', async function (req, res) {
   console.log('\nChannel Update Sent\n')
   console.log(formatState(channelState))
 
-  setTimeout(function () {
+  const payload = { impression, update: channelState }
+
+  setTimeout(() => {
     if (channelState.impressions == 1) {
-      request.post({ url: 'http://localhost:3001/channel_update', body: { impression, update: channelState }, json: true}, function () {})
-      request.post({ url: 'http://localhost:3002/channel_update', body: { impression, update: channelState }, json: true}, function () {})
+      request.post({
+        url: `${supplyHostUrl}/channel_update`,
+        body: payload,
+        json: true
+      }, () => ({}))
+
+      request.post({
+        url: `${adMarketHostUrl}/channel_update`,
+        body: payload,
+        json: true
+      }, () => ({}))
     }
   }, timeout)
 
-  // const saved = await p(channelDB.find.bind(channelDB))({ channelId: CHANNEL_ID})
+  // const saved = await channelDB.find({channelId: CHANNEL_ID})
 
   res.sendStatus(200)
 })
 
-app.get('/state', function (req, res) {
+app.get('/state', (req, res) => {
   res.json(store.getState())
 })
 
-app.listen(3000, function () {
-  console.log('listening on 3000')
+app.listen(3000, () => {
+  console.log('Demand listening on 3000')
 })
 
 function formatState(state) {

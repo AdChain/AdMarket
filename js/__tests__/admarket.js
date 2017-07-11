@@ -3,10 +3,11 @@ import p from 'es6-promisify'
 import Web3 from 'web3'
 import MerkleTree, { checkProof, merkleRoot } from 'merkle-tree-solidity'
 import { sha3 } from 'ethereumjs-util'
+
 import setup from '../setup'
 import { parseChannel, getFingerprint, getRoot, solSha3, parseLogAddress,
   verifySignature, makeUpdate, verifyUpdate, parseBN } from '../channel'
-import { wait } from '../utils'
+import wait from '../utils/wait'
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000
 
@@ -25,7 +26,9 @@ describe('AdMarket', async () => {
   let snapshotId, filter
 
   beforeAll(async () => {
-    let result = await setup({ testRPCProvider: 'http://localhost:8545'})
+    let result = await setup({
+      testRPCProvider: 'http://localhost:8545'
+    })
     adMarket = result.adMarket
     eth = result.eth
     accounts = result.accounts

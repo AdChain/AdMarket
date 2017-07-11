@@ -1,27 +1,17 @@
-// script1.js
-// Generates 1 impression, sends to only supply
+// script2.js
+// Generates 1 impression, sends to only demand
 
 const request = require('request-promise')
 
-const mode = process.env.mode
-
-const wait = timeout => new Promise(resolve => setTimeout(resolve, timeout))
-
-function generateImpressions (count, price, supplyId, demandId) {
-  const impressions = []
-  for (let i = 0; i < count; i++) {
-    impressions.push({ price, supplyId, demandId, impressionId: (i + 1).toString(), time: new Date().getTime() / 1000 })
-  }
-  return impressions
-}
+const wait = require('./utils/wait')
+const generateImpressions = require('./utils/generateImpressions')
 
 const demandId = '0x11111111111111111111'
 const supplyId = '0x22222222222222222222'
 
 const impressions = generateImpressions(1, 1, supplyId, demandId)
-console.log('\nImpression to send:\n')
-console.log(impressions)
-console.log('\n')
+
+console.log('\nImpression to send:\n', impressions, '\n')
 
 async function openChannel () {
   // Supply
@@ -69,24 +59,29 @@ async function main () {
 
   console.log('Impressions sent')
 
-  // await wait(1000)
+  await wait(1e3)
   // const body = await request('http://localhost:3001/state')
 
-  /*
-  request.get({ url: 'http://localhost:3000/verify', body: {
-    supplyId: supplyId,
-    demandId: demandId,
-    root: root,
-    start: 0,
-    end: 2
-  }, json: true }, function(err, res, body) {
-    console.log('PEWPEWPEW')
-    console.log(body)
-  });
-  */
+  request.get({
+    url: 'http://localhost:3000/verify',
+    body: {
+      supplyId: supplyId,
+      demandId: demandId,
+      start: 0,
+      end: 2
+    },
+    json: true
+  })
+  .then(body => {
+    console.log('verify response', body)
+  })
+  .catch(error => {
+    console.error(error)
+  })
 }
 
-main().catch((err) => {
+main()
+.catch((err) => {
   console.error(err.stack)
   process.exit(1)
 })

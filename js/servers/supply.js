@@ -7,16 +7,22 @@ import { createStore } from 'redux'
 import { combineReducers } from 'redux-immutable'
 import { List } from 'immutable'
 import request from 'request'
-import { supplyChannelsReducer } from '../reducers'
-import { supImpDB as impressionDB, supChDB as channelDB } from '../storage'
-import config from '../config'
-import { makeChannel, makeUpdate, ecrecover } from '../channel'
-import Promise from 'bluebird'
 import Web3 from 'web3'
 
-const web3 = new Web3()
+import config from '../config'
+import { supplyChannelsReducer } from '../reducers'
+import { supplyImpressionDB as impressionDB, supplyChannelDB as channelDB } from '../storage'
+import { makeChannel, makeUpdate, ecrecover } from '../channel'
+const {
+  demand: {hostUrl: demandHostUrl},
+  supply: {hostUrl: supplyHostUrl},
+  adMarket: {
+    address: adMarketAddress,
+    hostUrl: adMarketHostUrl
+  }
+} = config
 
-const p = Promise.promisify
+const web3 = new Web3()
 
 const store = createStore(supplyChannelsReducer)
 const dispatch = store.dispatch
@@ -55,11 +61,13 @@ let IS_OPEN = false
 // This will have to change
 app.get('/open', async function (req, res) {
   IS_OPEN = true
-  await p(channelDB.remove.bind(channelDB))({}, { multi: true })
-  await p(impressionDB.remove.bind(impressionDB))({}, { multi: true })
-  await p(channelDB.insert.bind(channelDB))(channel)
+  await channelDB.remove({}, { multi: true })
+  await impressionDB.remove({}, {multi: true})
+
+  await channelDB.insert(channel)
   dispatch({ type: 'CHANNEL_OPENED', payload: channel })
-  // console.log(await p(channelDB.find.bind(channelDB))({ channelId: CHANNEL_ID}))
+  // console.log(await channelDB.find({channelId: CHANNEL_ID}))
+
   res.sendStatus(200)
 })
 
@@ -73,9 +81,11 @@ app.get('/verify', async function (req, res) {
   // should be the impression # to end at.
   //
   // req: { supplyId, demandId, root, from, to }
-  // const saved = await p(impressionDB.find.bind(impressionDB))({ supplyId: req.supplyId, demandId: req.demandId})
+  // const saved = await impressionDB.find({ supplyId: req.supplyId, demandId: req.demandId})
 
-  const saved = await p(impressionDB.find.bind(impressionDB))({ supplyId: req.body.supplyId, demandId: req.body.demandId })
+  const {supplyId, demandId} = req.body
+
+  const saved = await impressionDB.find({supplyId, demandId})
   // NOTE - query responses are not ordered
   saved.sort((a, b) => {
     return a.impressionId - b.impressionId
@@ -98,7 +108,7 @@ app.post('/channel_update', async function (req, res) {
   // TODO Before we dispatch, verify the inputs.
 
   // TODO If impression doesn't exist in DB, save it. (for now just save)
-  await p(impressionDB.insert.bind(impressionDB))(impression)
+  await impressionDB.insert(impression)
 
   // How can we tell if the impression has already been received?
   // It should exist in the DB, and also be in the pendingImpression queue.
@@ -117,7 +127,7 @@ app.post('/channel_update', async function (req, res) {
   console.log('\nChannel Update Received\n')
   console.log(formatState(channelState))
 
-  await p(channelDB.update.bind(channelDB))(
+  await channelDB.update(
     { channelId: CHANNEL_ID },
     channelState,
     { multi: true }
@@ -141,7 +151,7 @@ app.post('/', async function (req, res) {
   console.log(impression)
 
   // TODO If impression doesn't exist in DB, save it. (for now just save)
-  await p(impressionDB.insert.bind(impressionDB))(impression)
+  await impressionDB.insert(impression)
 
   // TODO Before we dispatch, verify the inputs.
 
@@ -161,29 +171,37 @@ app.post('/', async function (req, res) {
   // console.log('\nIMPRESSION_SERVED - CHANNEL STATE\n')
   // console.log(channelState)
 
-  await p(channelDB.update.bind(channelDB))(
+  await channelDB.update(
     { channelId: CHANNEL_ID },
     channelState,
     { multi: true }
   )
 
-  // const saved = await p(channelDB.find.bind(channelDB))({ channelId: CHANNEL_ID})
+  // const saved = await channelDB.find({channelId: CHANNEL_ID})
   // const sig = saved[0].signature
 
   res.sendStatus(200)
 })
 
-app.get('/state', function (req, res) {
+app.get('/state', (req, res) => {
   res.json(store.getState())
 })
 
-app.listen(3001, function () {
-  console.log('listening on 3001')
+app.listen(3001, () => {
+  console.log('Supply listening on 3001')
 })
 
 function requestSignatures (impressionIds, cb) {
-  request.get({ url: 'http://localhost:3002/request_signature', body: impressionIds, json: true }, function (err, res, body) {
-    if (err) { throw err }
+  request.get({
+    url: `${adMarketHostUrl}/request_signature`,
+    body: impressionIds,
+    json: true
+  }, (err, res, body) => {
+    if (err) {
+      cb(null, err)
+      return false
+    }
+
     const signedImpressions = body
 
     console.log('Response from AdMarket')
@@ -204,7 +222,7 @@ function requestSignatures (impressionIds, cb) {
         // TODO get the address from the channel
         // should this just be part of the reducer?
         // 1. pass the bundle of impressionIds
-        return ecrecover(web3.sha3(impression.impressionId), impression.signature) == config.adMarket.address
+        return ecrecover(web3.sha3(impression.impressionId), impression.signature) == adMarketAddress
       })
 
       console.log('Signature received from AdMarket:\n')
@@ -212,7 +230,11 @@ function requestSignatures (impressionIds, cb) {
 
       dispatch({ type: 'SIGNATURES_RECEIVED', payload: validSignedImpressions })
 
-      request.post({ url: 'http://localhost:3000/request_update', body: validSignedImpressions[0], json: true }, function (err, res, body) {
+      request.post({
+        url: `${demandHostUrl}/request_update`,
+        body: validSignedImpressions[0],
+        json: true
+      }, (err, res, body) => {
         console.log('Response from Demand received')
       })
 
@@ -229,9 +251,9 @@ function requestSignatures (impressionIds, cb) {
 // looping over all pending impressions seems simpler than putting setTimeouts
 // for each impressions
 function loopPendingImpressions (timeout) {
-  setTimeout(function () {
+  setTimeout(() => {
     if (IS_OPEN) {
-      const now = new Date() / 1000
+      const now = (Date.now() / 1e3)|0
       const pending = store.getState().get(0).get('pendingImpressions').filter(impression => {
         return now - impression.time > 2
       }).toJS()
@@ -239,8 +261,11 @@ function loopPendingImpressions (timeout) {
       if (pending.length) {
         console.log(pending)
         console.log('Requesting signatures from AdMarket')
-        requestSignatures(pending, function (err) {
-          if (err) { throw err }
+        requestSignatures(pending, (result, err) => {
+          if (err) {
+            throw err
+          }
+
           loopPendingImpressions(timeout)
         })
       } else {

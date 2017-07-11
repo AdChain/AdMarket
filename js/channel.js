@@ -171,8 +171,20 @@ const ecrecover = (msg, sig) => {
   return '0x' + ethUtils.pubToAddress(pub).toString('hex')
 }
 
-export { parseChannel, getFingerprint, getLeaves, getRoot, solSha3, parseLogAddress,
-  verifySignature, makeUpdate, verifyUpdate, parseBN, makeChannel, sign, ecrecover,
+export {
+  parseChannel,
+  getFingerprint,
+  getLeaves,
+  getRoot,
+  solSha3,
+  parseLogAddress,
+  verifySignature,
+  makeUpdate,
+  verifyUpdate,
+  parseBN,
+  makeChannel,
+  sign,
+  ecrecover,
   parseChallenge
 }
 
