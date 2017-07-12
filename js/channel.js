@@ -163,12 +163,25 @@ const parseBN = (bigNumber) => {
 }
 
 const ecrecover = (msg, sig) => {
-  const r = ethUtils.toBuffer(sig.slice(0, 66))
-  const s = ethUtils.toBuffer('0x' + sig.slice(66, 130))
-  const v = 27 + parseInt(sig.slice(130, 132))
-  const m = ethUtils.toBuffer(msg)
-  const pub = ethUtils.ecrecover(m, v, r, s)
-  return '0x' + ethUtils.pubToAddress(pub).toString('hex')
+  if (typeof sig === 'string') {
+    sig = ethUtils.fromRpcSig(sig)
+  }
+
+  const msgBuf = new Buffer(msg)
+  const prefix = new Buffer('\x19Ethereum Signed Message:\n');
+  const h = ethUtils.sha3(
+    Buffer.concat([prefix, new Buffer(String(msgBuf.length)), msgBuf])
+  );
+
+  const r = sig.r
+  const s = sig.s
+  const v = sig.v
+
+  const pubkey = ethUtils.ecrecover(h, v, r, s)
+  const addrBuf = ethUtils.pubToAddress(pubkey)
+  const addr = ethUtils.bufferToHex(addrBuf)
+
+  return addr
 }
 
 export {

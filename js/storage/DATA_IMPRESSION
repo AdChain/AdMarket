@@ -1,3 +1,7 @@
-{"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"1","time":1499753875,"signature":"0x0ee2713294aeb60de52e17c2172be26cb01e7b31ebf64510643588a4b106e049195b858ba127b127c191c7025babe401f3406b7019b3bdd0e05a8d2d9730bcc01c","_id":"92BbZMOaJUuq63l9"}
-{"$$deleted":true,"_id":"92BbZMOaJUuq63l9"}
 {"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"1","time":1499753913,"signature":"0x0ee2713294aeb60de52e17c2172be26cb01e7b31ebf64510643588a4b106e049195b858ba127b127c191c7025babe401f3406b7019b3bdd0e05a8d2d9730bcc01c","_id":"S6j49xvGXB5JAzTJ"}
+{"$$deleted":true,"_id":"S6j49xvGXB5JAzTJ"}
+{"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"1","time":1499754320,"_id":"FzPbJwgVFtUiJBkr"}
+{"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"1","time":1499754346,"_id":"kCcGyB2q2MHAPrKH"}
+{"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"1","time":1499754347,"_id":"lF8duvwzimwrEHGA"}
+{"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"1","time":1499754320,"impressions":1,"balance":1,"root":"0x8e16c43f3559d28eee9725af2ae48f8846aefe522700ad3928abae3ab4d9e0b4","prevRoot":"0x044852b2a670ade5407e78fb2863c51de9fcb96542a07186fe3aeda6bb8a116d","signature":"0x0ee2713294aeb60de52e17c2172be26cb01e7b31ebf64510643588a4b106e049195b858ba127b127c191c7025babe401f3406b7019b3bdd0e05a8d2d9730bcc01c","_id":"xq1CzrGwEXkSgf0N"}
+{"price":1,"supplyId":"0x22222222222222222222","demandId":"0x11111111111111111111","impressionId":"1","time":1499754796,"_id":"P1bnEqI75gGWBG2w"}

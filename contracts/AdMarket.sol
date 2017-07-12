@@ -61,17 +61,26 @@ contract AdMarket is ECVerify {
   }
 
   modifier only_owner() {
-    if (msg.sender != owner) throw;
+    if (msg.sender != owner) {
+        revert();
+    }
+
     _;
   }
 
   modifier only_registered_demand() {
-    if (!isRegisteredDemand(msg.sender)) throw;
+    if (!isRegisteredDemand(msg.sender)) {
+        revert();
+    }
+
     _;
   }
 
   modifier only_registered_supply() {
-    if (!isRegisteredSupply(msg.sender)) throw;
+    if (!isRegisteredSupply(msg.sender)) {
+        revert();
+    }
+
     _;
   }
 
@@ -110,13 +119,13 @@ contract AdMarket is ECVerify {
   }
 
   function registerDemand(address demand, string url) only_owner {
-    if (isEmptyString(url)) throw; // must at least provide a non-empty string to update later
+    if (isEmptyString(url)) revert(); // must at least provide a non-empty string to update later
     registeredDemand[demand] = url;
     DemandRegistered(demand);
   }
 
   function registerSupply(address supply, string url) only_owner {
-    if (isEmptyString(url)) throw; // must at least provide a non-empty string to update later
+    if (isEmptyString(url)) revert(); // must at least provide a non-empty string to update later
     registeredSupply[supply] = url;
     SupplyRegistered(supply);
   }
@@ -133,14 +142,14 @@ contract AdMarket is ECVerify {
 
   // A registered demand can update the url of their server endpoint
   function updateDemandUrl(string url) only_registered_demand {
-    if (isEmptyString(url)) throw; // can't update to empty string, must deregister
+    if (isEmptyString(url)) revert(); // can't update to empty string, must deregister
     registeredDemand[msg.sender] = url;
     DemandUrlUpdated(msg.sender);
   }
 
   // A registered supply can update the url of their server endpoint
   function updateSupplyUrl(string url) only_registered_supply {
-    if (isEmptyString(url)) throw; // can't update to empty string, must deregister
+    if (isEmptyString(url)) revert(); // can't update to empty string, must deregister
     registeredSupply[msg.sender] = url;
     SupplyUrlUpdated(msg.sender);
   }
@@ -150,10 +159,10 @@ contract AdMarket is ECVerify {
     address demand = msg.sender;
 
     // Check that supply is registered
-    if (!isRegisteredSupply(supply)) throw;
+    if (!isRegisteredSupply(supply)) revert();
 
     // Check that we don't already have a channel open with the supply
-    if (channelPartners[demand][supply]) throw;
+    if (channelPartners[demand][supply]) revert();
 
     bytes32 channelId = sha3(channelCount++);
     uint256 expiration = block.number + channelTimeout;
@@ -183,13 +192,13 @@ contract AdMarket is ECVerify {
     bytes signature,
     bool renew
   ) {
-    Channel channel = channels[channelId];
+    Channel storage channel = channels[channelId];
 
     // Check that msg.sender is either demand or supply
-    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
+    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) revert();
 
     // Check that the channel is open
-    if (!(channel.state == ChannelState.Open)) throw;
+    if (!(channel.state == ChannelState.Open)) revert();
 
     bytes32 fingerprint = sha3(
       address(this),
@@ -200,7 +209,7 @@ contract AdMarket is ECVerify {
     );
 
     // Check the signature on the state
-    if (!ecverify(fingerprint, signature, channel.demand)) throw;
+    if (!ecverify(fingerprint, signature, channel.demand)) revert();
 
     // renew the channel, keeping it open at the end of the checkpoint
     if (renew) {
@@ -220,13 +229,13 @@ contract AdMarket is ECVerify {
   // The checkpointing process would continue in the same exact way, but it would
   // close upon completion instead of remaining open
   function closeChannel(bytes32 channelId) {
-    Channel channel = channels[channelId];
+    Channel storage channel = channels[channelId];
 
     // Check that msg.sender is either demand or supply
-    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
+    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) revert();
 
     // Check that the channel is checkpointing
-    if (!(channel.state == ChannelState.Checkpointing)) throw;
+    if (!(channel.state == ChannelState.Checkpointing)) revert();
 
     channel.state = ChannelState.Closing;
   }
@@ -244,16 +253,16 @@ contract AdMarket is ECVerify {
     bytes merkleProof,
     bytes signature
   ) {
-    Channel channel = channels[channelId];
+    Channel storage channel = channels[channelId];
 
     // Check that msg.sender is either demand or supply
-    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
+    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) revert();
 
     // Check that the channel is checkpointing or closing
-    if (channel.state != ChannelState.Checkpointing && channel.state != ChannelState.Closing) throw;
+    if (channel.state != ChannelState.Checkpointing && channel.state != ChannelState.Closing) revert();
 
     // Check that the challenge period has not expired
-    if (channel.challengeTimeout < block.number) throw;
+    if (channel.challengeTimeout < block.number) revert();
 
     bytes32 fingerprint = sha3(
       address(this),
@@ -264,10 +273,10 @@ contract AdMarket is ECVerify {
     );
 
     // Check the signature on the state
-    if (!ecverify(fingerprint, signature, channel.demand)) throw;
+    if (!ecverify(fingerprint, signature, channel.demand)) revert();
 
     // Check the merkle proof for the impressions and challengeRoot
-    if (!(checkProofOrdered(merkleProof, challengeRoot, sha3(impressions), index))) throw;
+    if (!(checkProofOrdered(merkleProof, challengeRoot, sha3(impressions), index))) revert();
 
     challenges[channelId] = Challenge(
       challengeRoot,
@@ -293,27 +302,27 @@ contract AdMarket is ECVerify {
     uint256 index,
     bytes merkleProof
   ) {
-    Channel channel = channels[channelId];
+    Channel storage channel = channels[channelId];
 
     // Check that msg.sender is either demand or supply
-    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
+    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) revert();
 
     // Check that the channel is checkpointing or closing
-    if (channel.state != ChannelState.Checkpointing && channel.state != ChannelState.Closing) throw;
+    if (channel.state != ChannelState.Checkpointing && channel.state != ChannelState.Closing) revert();
 
     // Check that the challenge period is not over
-    if (channel.challengeTimeout < block.number) throw;
+    if (channel.challengeTimeout < block.number) revert();
 
-    Challenge challenge = challenges[channelId];
+    Challenge storage challenge = challenges[channelId];
 
     // Check that a challenge was presented
-    if (challenge.impressions <= 0) throw;
+    if (challenge.impressions <= 0) revert();
 
     // Check that impressions is larger than in the challenge
-    if (challenge.impressions > impressions) throw;
+    if (challenge.impressions > impressions) revert();
 
     // Check the merkle proof for the impressions and proposedRoot
-    if (!(checkProofOrdered(merkleProof, channel.proposedRoot, sha3(impressions), index))) throw;
+    if (!(checkProofOrdered(merkleProof, channel.proposedRoot, sha3(impressions), index))) revert();
 
     // renew channel
     if (channel.state == ChannelState.Checkpointing) {
@@ -328,7 +337,7 @@ contract AdMarket is ECVerify {
 
     // even if the channel is closed, we want to record the final state root
     channel.root = channel.proposedRoot;
-    channel.proposedRoot = 0;
+    channel.proposedRoot = 0x0;
     channel.challengeTimeout = 0;
     delete challenges[channelId];
   }
@@ -339,18 +348,18 @@ contract AdMarket is ECVerify {
   // If the participants intend to renew, the channel will stay open and its expiration block will reset.
   // Otherwise the channel will close.
   function checkpointChannel(bytes32 channelId) {
-    Channel channel = channels[channelId];
+    Channel storage channel = channels[channelId];
 
     // Check that msg.sender is either demand or supply
-    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) throw;
+    if (!(channel.demand == msg.sender || channel.supply == msg.sender)) revert();
 
     // Check that the channel is checkpointing or closing
-    if (channel.state != ChannelState.Checkpointing && channel.state != ChannelState.Closing) throw;
+    if (channel.state != ChannelState.Checkpointing && channel.state != ChannelState.Closing) revert();
 
     // Check that the challenge period is over
-    if (channel.challengeTimeout > block.number) throw;
+    if (channel.challengeTimeout > block.number) revert();
 
-    Challenge challenge = challenges[channelId];
+    Challenge storage challenge = challenges[channelId];
 
     // If there was an unanswered challenge, it wins. Otherwise the proposedRoot is accepted.
     // note: challenge.impressions can only be > 0 if there was an unanswered challenge.
@@ -372,7 +381,7 @@ contract AdMarket is ECVerify {
       channelPartners[channel.demand][channel.supply] = false;
     }
 
-    channel.proposedRoot = 0;
+    channel.proposedRoot = 0x0;
     channel.challengeTimeout = 0;
     delete challenges[channelId];
   }
@@ -407,7 +416,7 @@ contract AdMarket is ECVerify {
     uint256 challengeTimeout,
     bytes32 proposedRoot
   ) {
-    Channel channel = channels[id];
+    Channel storage channel = channels[id];
     return (
       channel.contractId,
       channel.channelId,
@@ -425,7 +434,7 @@ contract AdMarket is ECVerify {
     bytes32 challengeRoot,
     uint256 impressions
   ) {
-    Challenge challenge = challenges[id];
+    Challenge storage challenge = challenges[id];
     return (
       challenge.challengeRoot,
       challenge.impressions

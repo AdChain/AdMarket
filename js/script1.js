@@ -55,7 +55,7 @@ async function main () {
 
   console.log('Impressions sent')
 
-  await wait(1000)
+  await wait(1e3)
   //const body = await request('http://localhost:3001/state')
 
   request.get({
