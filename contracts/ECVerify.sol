@@ -49,6 +49,10 @@ contract ECVerify {
         if (v < 27)
           v += 27;
 
+        // https://ethereum.stackexchange.com/a/12684/5093
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        hash = sha3(prefix, hash);
+
         return ecrecover(hash, v, r, s);
     }
 

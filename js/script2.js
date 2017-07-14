@@ -35,19 +35,19 @@ async function sendImpression (impression) {
   })
   */
 
-  /*
   request.post({
     url: 'http://localhost:3000',
     body: impression,
     json: true
   })
-  */
 
+  /*
   request.post({
     url: 'http://localhost:3001',
     body: impression,
     json: true
   })
+  */
 }
 
 async function main () {

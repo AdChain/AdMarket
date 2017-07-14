@@ -42,7 +42,7 @@ contract AdMarket is ECVerify {
     // Metadata (not included in offchain state updates)
     ChannelState state;
     uint256 expiration; // block number after which the channel expires and can be closed by anyone (set in openChannel)
-    uint256 challengeTimeout; // block number after which the channel can be closed by its participants (set in proposeCheckpointChannel and challengeCheckpointChannel)
+    uint256 challengeTimeout; // block number after which the channel can be closed by its participants (set in proposeCheckpoint and challengeCheckpointChannel)
     bytes32 proposedRoot; // a placeholder root which is only stored and set after the challenge period is over
   }
 
@@ -337,7 +337,7 @@ contract AdMarket is ECVerify {
 
     // even if the channel is closed, we want to record the final state root
     channel.root = channel.proposedRoot;
-    channel.proposedRoot = 0x0;
+    channel.proposedRoot = sha3(0);
     channel.challengeTimeout = 0;
     delete challenges[channelId];
   }
@@ -381,7 +381,7 @@ contract AdMarket is ECVerify {
       channelPartners[channel.demand][channel.supply] = false;
     }
 
-    channel.proposedRoot = 0x0;
+    channel.proposedRoot = sha3(0);
     channel.challengeTimeout = 0;
     delete challenges[channelId];
   }

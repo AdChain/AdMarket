@@ -82,6 +82,9 @@ export function supplyChannelsReducer (channels = List([]), { type, payload }) {
         })
       }
 
+    /**
+     * {object} payload - new channel state
+     */
     case 'CHANNEL_UPDATE':
       [index, channel] = findChannel(channels, payload)
       if (channel) {
@@ -100,6 +103,8 @@ export function supplyChannelsReducer (channels = List([]), { type, payload }) {
           //  - remove applied impressions from pool
           //  - also cancel the setTimeout functions
           const final = channel.withMutations(channel => {
+
+            // merge pending channel updates to new channel update
             const [toMerge, pending] = getReadyUpdates(payload.impressions, channel.get('pendingUpdates'))
             toMerge.reduce((channel, impression) => {
               return makeUpdate(channel, impression)

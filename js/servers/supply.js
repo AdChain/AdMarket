@@ -263,7 +263,7 @@ function loopPendingImpressions (timeout) {
         console.log('Requesting signatures from AdMarket')
         requestSignatures(pending, (result, err) => {
           if (err) {
-            throw err
+            console.error(err)
           }
 
           loopPendingImpressions(timeout)
@@ -278,7 +278,7 @@ function loopPendingImpressions (timeout) {
   }, timeout)
 }
 
-loopPendingImpressions(2000)
+loopPendingImpressions(2e3)
 
 function formatState(state) {
   return {

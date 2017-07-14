@@ -165,7 +165,7 @@ describe('AdMarket', async () => {
     assert.equal(parseInt(channel.proposedRoot, 16), 0)
   })
 
-  xit('proposeCheckpointChannel', async () => {
+  it('proposeCheckpoint', async () => {
     const demand = accounts[1]
     const supply = accounts[2]
     const demandUrl = 'foo'
@@ -180,12 +180,16 @@ describe('AdMarket', async () => {
     const challengePeriod = parseBN((await p(adMarket.challengePeriod)())[0])
     const challengeTimeout = blockNumber + challengePeriod + 1
 
-    const proposedRoot = solSha3('wut')
+    const proposedRoot = solSha3(0)
     channel.root = proposedRoot
+
     const fingerprint = getFingerprint(channel)
     const sig = await p(web3.eth.sign)(demand, fingerprint)
-    await adMarket.proposeCheckpointChannel(
-      channelId, proposedRoot, sig, { from: demand }
+
+    const renew = true
+
+    await adMarket.proposeCheckpoint(
+      channelId, proposedRoot, sig, renew, { from: demand }
     )
 
     const updatedChannel = parseChannel(await adMarket.getChannel(channelId))
