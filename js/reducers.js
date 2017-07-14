@@ -15,18 +15,23 @@ const findChannel = (channels, payload) => {
   return result || [undefined, undefined]
 }
 
-// TODO use a Map instead of a List for the channels? Because I query them by
-// supplyId + demandId every time anyways
-// I have to handle the edge case of multiple contracts with the same demand
-// + supply, meaning I have to create a unique channel ID
-// This could be the hash of channel + supply + demand, but then I have to hash
-// every time...
-
-// start - impressions count
-// pendingImpressions - immutable array of pending impressions
-// returns two values:
-//  1. the array of impressions to apply
-//  2. the remaining pendingImpressions
+/**
+ * getReadyUpdates
+ * @desc
+ * TODO: use a Map instead of a List for the channels? Because I query them by
+ * supplyId + demandId every time anyways
+ * I have to handle the edge case of multiple contracts with the same demand
+ * + supply, meaning I have to create a unique channel ID
+ * This could be the hash of channel + supply + demand, but then I have to hash
+ * every time...
+ *
+ * @param {number} start - impressions count to start
+ * @param {object} pendingUpdates - immutablejs array of impressions to apply
+ * @returns
+ * returns two values:
+ * 1. the array of impressions to apply
+ * 2. the remaining pendingImpressions
+ */
 function getReadyUpdates (start, pendingUpdates) {
   const sorted = pendingUpdates.sort((a, b) => {
     return a.impressions - b.impressions

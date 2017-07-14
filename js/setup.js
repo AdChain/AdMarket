@@ -1,3 +1,5 @@
+// set up smart contract and web3 provider
+
 import fs from 'fs'
 import p from 'es6-promisify'
 import TestRPC from 'ethereumjs-testrpc'
@@ -6,6 +8,8 @@ import Eth from 'ethjs-query'
 import EthContract from 'ethjs-contract'
 import Web3 from 'web3'
 import HttpProvider from 'ethjs-provider-http'
+
+import wait from './utils/wait'
 
 const SOL_PATH = __dirname + '/../contracts/'
 const TESTRPC_PORT = 8545
@@ -70,7 +74,7 @@ export default async function (opts) {
   // PREPARE THE ADMARKET ABSTRACTION OBJECT
   const AdMarket = contract(abi, bytecode, {
     from: accounts[defaultAcct],
-    gas: 3000000
+    gas: 3e6
   })
 
   let adMarketTxHash, adMarketReceipt, adMarket
@@ -91,8 +95,3 @@ export default async function (opts) {
 
   return { adMarket, AdMarket, eth, accounts, web3 }
 }
-
-// async/await compatible setTimeout
-// http://stackoverflow.com/questions/38975138/is-using-async-in-settimeout-valid
-// await wait(2000)
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms))

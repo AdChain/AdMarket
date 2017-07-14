@@ -15,7 +15,10 @@ import { supplyImpressionDB as impressionDB, supplyChannelDB as channelDB } from
 import { makeChannel, makeUpdate, ecrecover } from '../channel'
 const {
   demand: {hostUrl: demandHostUrl},
-  supply: {hostUrl: supplyHostUrl},
+  supply: {
+    hostUrl: supplyHostUrl,
+    port: port
+  },
   adMarket: {
     address: adMarketAddress,
     hostUrl: adMarketHostUrl
@@ -187,8 +190,8 @@ app.get('/state', (req, res) => {
   res.json(store.getState())
 })
 
-app.listen(3001, () => {
-  console.log('Supply listening on 3001')
+app.listen(port, () => {
+  console.log(`Supply listening on ${port}`)
 })
 
 function requestSignatures (impressionIds, cb) {

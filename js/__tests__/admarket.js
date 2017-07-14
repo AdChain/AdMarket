@@ -5,20 +5,31 @@ import MerkleTree, { checkProof, merkleRoot } from 'merkle-tree-solidity'
 import { sha3 } from 'ethereumjs-util'
 
 import setup from '../setup'
-import { parseChannel, getFingerprint, getRoot, solSha3, parseLogAddress,
-  verifySignature, makeUpdate, verifyUpdate, parseBN } from '../channel'
+import {
+  parseChannel,
+  getFingerprint,
+  getRoot,
+  solSha3,
+  parseLogAddress,
+  verifySignature,
+  makeUpdate,
+  verifyUpdate,
+  parseBN
+} from '../channel'
 import wait from '../utils/wait'
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 3e4
 
 const web3 = new Web3()
 
-// goal - usable node.js middleware library for impression tracking
-// ACF will be registrar first and operate adMarket first
-// need to test out what auditing looks like
-// reference implementation. 2 weeks till completion.
-// offchain storage combines with this.
-// need to manage state machine between both nodes, interaction with adMarket
+/**
+ * goal - usable node.js middleware library for impression tracking
+ * ACF will be registrar first and operate adMarket first
+ * need to test out what auditing looks like
+ * reference implementation. 2 weeks till completion.
+ * offchain storage combines with this.
+ * need to manage state machine between both nodes, interaction with adMarket
+ */
 
 describe('AdMarket', async () => {
 
@@ -224,8 +235,8 @@ describe('AdMarket', async () => {
       supply: '0x22222222222222222222',
       impressionId: 'foo',
       impressionPrice: 1,
-      impressions: 1000,
-      balance: 1000
+      impressions: 1e3,
+      balance: 1e3
     }
 
     channel.root = getRoot(channel, web3.sha3('foo'))
@@ -244,7 +255,7 @@ describe('AdMarket', async () => {
 
     await adMarket.join(1, {
       from: accounts[1],
-      value: 1000
+      value: 1e3
     })
 
     let state = parseChannel(await adMarket.getChannel(1))

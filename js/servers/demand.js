@@ -13,7 +13,10 @@ import { impressionDB, channelDB } from '../storage'
 import { makeChannel, makeUpdate } from '../channel'
 import config from '../config'
 const {
-  demand: {hostUrl: demandHostUrl},
+  demand: {
+    hostUrl: demandHostUrl,
+    port: port
+  },
   supply: {hostUrl: supplyHostUrl},
   adMarket: {hostUrl: adMarketHostUrl}
 } = config
@@ -211,8 +214,8 @@ app.get('/state', (req, res) => {
   res.json(store.getState())
 })
 
-app.listen(3000, () => {
-  console.log('Demand listening on 3000')
+app.listen(port, () => {
+  console.log(`Demand listening on ${port}`)
 })
 
 function formatState(state) {

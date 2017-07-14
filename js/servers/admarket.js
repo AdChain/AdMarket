@@ -16,7 +16,8 @@ const {
   supply: {hostUrl: supplyHostUrl},
   adMarket: {
     privKey: adMarketPrivKey,
-    hostUrl: adMarketHostUrl
+    hostUrl: adMarketHostUrl,
+    port: port
   }
 } = config
 
@@ -154,8 +155,8 @@ app.post('/', async function (req, res) {
   res.sendStatus(200)
 })
 
-app.listen(3002, function () {
-  console.log('AdMarket listening on 3002')
+app.listen(port, () => {
+  console.log(`AdMarket listening on ${port}`)
 })
 
 function formatState(state) {
