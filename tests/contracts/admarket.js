@@ -5,8 +5,19 @@ import MerkleTree, { checkProofOrdered, merkleRoot, getProof } from 'merkle-tree
 import { sha3 } from 'ethereumjs-util'
 
 import setup from '../../js/setup'
-import { makeChannel, parseChannel, getFingerprint, getLeaves, getRoot, solSha3,
-  parseLogAddress, verifySignature, makeUpdate, verifyUpdate, parseBN, parseChallenge
+import {
+  makeChannel,
+  parseChannel,
+  getFingerprint,
+  getLeaves,
+  getRoot,
+  solSha3,
+  parseLogAddress,
+  verifySignature,
+  makeUpdate,
+  verifyUpdate,
+  parseBN,
+  parseChallenge
 } from '../../js/channel'
 import wait from '../../js/utils/wait'
 
@@ -47,8 +58,8 @@ describe('AdMarket', () => {
   const mineBlock = () => {
     return new Promise(async (accept) => {
       await p(web3.currentProvider.sendAsync.bind(web3.currentProvider))({
-        jsonrpc: "2.0",
-        method: "evm_mine",
+        jsonrpc: '2.0',
+        method: 'evm_mine',
         id: new Date().getTime()
       })
       accept()
@@ -101,7 +112,7 @@ describe('AdMarket', () => {
     it('setup', async () => {
       // channelCount should start at 0
       const channelCount = await adMarket.channelCount()
-      assert.equal(+channelCount[0].toString(), 0)
+      assert.equal(channelCount[0].toNumber(), 0)
     })
 
     it('registerDemand', async () => {

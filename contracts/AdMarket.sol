@@ -337,7 +337,7 @@ contract AdMarket is ECVerify {
 
     // even if the channel is closed, we want to record the final state root
     channel.root = channel.proposedRoot;
-    channel.proposedRoot = sha3(0);
+    channel.proposedRoot = bytes32(0);
     channel.challengeTimeout = 0;
     delete challenges[channelId];
   }
@@ -381,7 +381,7 @@ contract AdMarket is ECVerify {
       channelPartners[channel.demand][channel.supply] = false;
     }
 
-    channel.proposedRoot = sha3(0);
+    channel.proposedRoot = bytes32(0);
     channel.challengeTimeout = 0;
     delete challenges[channelId];
   }
